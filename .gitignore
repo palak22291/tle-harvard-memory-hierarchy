@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Verilog Simulation & Waveform Outputs
+*.vvp
+*.vcd
+*.out
+*.log
+sim/*
+!sim/.gitkeep
+
+# Vivado / Quartus / ModelSim temporary files (if teammates use them)
+*.jou
+*.pb
+*.str
+work/
+transcript
+*.wlf
+xsim.dir/
