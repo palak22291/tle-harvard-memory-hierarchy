@@ -22,7 +22,7 @@ flowchart LR
     subgraph Data_Path["Dedicated Data Hierarchy (Read/Write)"]
         DEC["Address Decoder &<br/>R/W Control Logic"]
         DMEM["Local Data Memory (DMEM)<br/>256 x 32-bit Fast SRAM<br/>0x0000_0000 - 0x0000_03FF"]
-        L2["Shared Lower-Level Memory (L2)<br/>512 x 32-bit Memory<br/>0x0000_0400 - 0x0000_0BFF"]
+        L2["Shared Lower-Level Memory (L2)<br/>512 x 32-bit Memory<br/>0x0000_0800 - 0x0000_0FFF"]
     end
 
     PC -->|"i_addr[31:0], imem_en"| IMEM
@@ -43,8 +43,8 @@ flowchart LR
 | :--- | :--- | :--- | :--- | :--- |
 | **Instruction Memory (`IMEM`)** | `0x0000_0000 - 0x0000_03FF` | 1 KB (256 Words) | Read-Only (`RX`) | `imem_en` |
 | **Local Data Memory (`DMEM`)** | `0x0000_0000 - 0x0000_03FF` | 1 KB (256 Words) | Read / Write (`RW`) | `dmem_en` |
-| **Shared L2 Memory (`L2`)** | `0x0000_0400 - 0x0000_0BFF` | 2 KB (512 Words) | Read / Write (`RW`) | `l2_en` |
-| **Unmapped / Fault Region** | `0x0000_0C00 - 0xFFFF_FFFF` | — | Fault / Trap | `invalid_addr_err` |
+| **Shared L2 Memory (`L2`)** | `0x0000_0800 - 0x0000_0FFF` | 2 KB (512 Words) | Read / Write (`RW`) | `l2_en` |
+| **Unmapped / Fault Regions** | `0x0000_0400 - 0x0000_07FF`, `0x0000_1000 - 0xFFFF_FFFF` | — | Fault / Trap | `invalid_addr_err` |
 
 ---
 
