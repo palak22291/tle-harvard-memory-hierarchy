@@ -19,7 +19,19 @@ sim_addr_rw:
 		tb/tb_addr_rw.v
 	$(VVP) sim/addr_rw.vvp
 
-sim_all: sim_fetch sim_dmem sim_addr_rw
+sim_harvard_top:
+	$(IVERILOG) $(CFLAGS) -o sim/harvard_top.vvp \
+		rtl/common/program_counter.v \
+		rtl/harvard/instruction_memory.v \
+		rtl/harvard/data_memory.v \
+		rtl/harvard/address_decoder.v \
+		rtl/harvard/rw_control.v \
+		rtl/harvard/shared_l2_memory.v \
+		rtl/harvard/harvard_top.v \
+		tb/tb_harvard_top.v
+	$(VVP) sim/harvard_top.vvp
+
+sim_all: sim_fetch sim_dmem sim_addr_rw sim_harvard_top
 
 clean:
 	rm -f sim/*.vvp sim/*.vcd
