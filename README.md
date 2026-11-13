@@ -59,7 +59,7 @@ tle-harvard-memory-hierarchy/
 ├── rtl/
 │   ├── common/
 │   │   ├── defines.vh                 # Global bus widths, memory depths, and address masks
-│   │   └── program_counter.v          # 32-bit Program Counter with stall & branch support
+│   │   └── program_counter.v          # 32-bit Program Counter with stall & branch support (Palak Gupta)
 │   ├── harvard/
 │   │   ├── instruction_memory.v       # 256x32-bit synchronous Instruction ROM (Palak Gupta)
 │   │   ├── data_memory.v              # 256x32-bit synchronous Data RAM, byte-lane writes (Atanu Adhikari)
