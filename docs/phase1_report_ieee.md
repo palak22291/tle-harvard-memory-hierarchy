@@ -1,7 +1,14 @@
 # Instruction and Data Memory Hierarchy: A Harvard-Style Memory Organization in Verilog RTL
 ### Phase I Report · Project 9 · Modern Computer Architecture · Team TLE
 
-**Team:** Member 1 - Palak Gupta (palak22291) · Member 2 - Atanu Adhikari (techatanu) · Member 3 - alGo-explO · Member 4 - princesingh2024
+**Team TLE:**
+
+| Member | Name | GitHub |
+| :--- | :--- | :--- |
+| 1 | Palak Gupta | palak22291 |
+| 2 | Atanu Adhikari | techatanu |
+| 3 | Sambhav Kumar | alGo-explO |
+| 4 | Prince Singh | princesingh2024 |
 
 **Repository:** https://github.com/palak22291/tle-harvard-memory-hierarchy
 
@@ -32,10 +39,10 @@ Project 9 of the course asks for a simplified Harvard-style memory organization.
 ### D. Phase I Status
 | Module | Owner | Status |
 | :--- | :--- | :--- |
-| `program_counter.v`, `instruction_memory.v`, `tb_phase1_harvard.v` | Member 1 | Implemented, fetch/stall/branch waveform produced (`make sim_fetch`) |
-| `data_memory.v`, `tb_dmem.v` | Member 2 | Implemented, self-checking testbench passes (`make sim_dmem`: 1584 checks, 0 errors) |
-| `address_decoder.v`, `rw_control.v`, `shared_l2_memory.v`, `tb_addr_rw.v` | Member 3 | Implemented, self-checking testbench passes (`make sim_addr_rw`: 26 checks, 0 errors) |
-| `harvard_top.v`, `tb_harvard_top.v` | Member 4 | Integrated PC/IMEM + decoder/R-W control + DMEM + L2, testbench passes (`make sim_harvard_top`: 25 checks, 0 errors) |
+| `program_counter.v`, `instruction_memory.v`, `tb_phase1_harvard.v` | Palak Gupta (palak22291) | Implemented, fetch/stall/branch waveform produced (`make sim_fetch`) |
+| `data_memory.v`, `tb_dmem.v` | Atanu Adhikari (techatanu) | Implemented, self-checking testbench passes (`make sim_dmem`: 1584 checks, 0 errors) |
+| `address_decoder.v`, `rw_control.v`, `shared_l2_memory.v`, `tb_addr_rw.v` | Sambhav Kumar (alGo-explO) | Implemented, self-checking testbench passes (`make sim_addr_rw`: 26 checks, 0 errors) |
+| `harvard_top.v`, `tb_harvard_top.v` | Prince Singh (princesingh2024) | Integrated PC/IMEM + decoder/R-W control + DMEM + L2, testbench passes (`make sim_harvard_top`: 25 checks, 0 errors) |
 
 ### E. Report Organization
 Section II reviews related work on memory organizations. Section III describes the proposed Harvard memory subsystem and its timing behavior. Section IV presents the Phase I simulation results; the comparison with the von Neumann baseline is added in Phase II. Section V concludes the report and outlines Phase II, and Section VI lists individual contributions.
@@ -144,7 +151,7 @@ Phase I delivers a complete, verified Harvard memory subsystem in synthesizable 
 Phase II will (i) add configurable multi-cycle latency to the shared L2 memory, (ii) build the unified-memory von Neumann baseline (`unified_memory.v`, `bus_arbiter.v`), (iii) drive both organizations with the same LOAD/STORE/ALU sequences from a simple CPU driver, and (iv) report measured cycle count, CPI and speedup, together with synthesis resource utilization and maximum operating frequency.
 
 ## VI. Individual Contributions
-*(To be added by Member 4.)*
+*(To be added by Prince Singh.)*
 
 ## References
 

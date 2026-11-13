@@ -61,24 +61,24 @@ tle-harvard-memory-hierarchy/
 │   │   ├── defines.vh                 # Global bus widths, memory depths, and address masks
 │   │   └── program_counter.v          # 32-bit Program Counter with stall & branch support
 │   ├── harvard/
-│   │   ├── instruction_memory.v       # 256x32-bit synchronous Instruction ROM (Member 1)
-│   │   ├── data_memory.v              # 256x32-bit synchronous Data RAM, byte-lane writes (Member 2)
-│   │   ├── address_decoder.v          # Combinational bitmask address decoder (Member 3)
-│   │   ├── rw_control.v               # Read/write control FSM: IDLE -> ACTIVE -> WAIT (Member 3)
-│   │   ├── shared_l2_memory.v         # 512x32-bit shared lower-level (L2) memory (Member 3)
-│   │   └── harvard_top.v              # Top-level Harvard hierarchy integration (Member 4)
+│   │   ├── instruction_memory.v       # 256x32-bit synchronous Instruction ROM (Palak Gupta)
+│   │   ├── data_memory.v              # 256x32-bit synchronous Data RAM, byte-lane writes (Atanu Adhikari)
+│   │   ├── address_decoder.v          # Combinational bitmask address decoder (Sambhav Kumar)
+│   │   ├── rw_control.v               # Read/write control FSM: IDLE -> ACTIVE -> WAIT (Sambhav Kumar)
+│   │   ├── shared_l2_memory.v         # 512x32-bit shared lower-level (L2) memory (Sambhav Kumar)
+│   │   └── harvard_top.v              # Top-level Harvard hierarchy integration (Prince Singh)
 │   └── von_neumann/                   # Phase II shared-memory baseline comparison
 ├── tb/
-│   ├── tb_phase1_harvard.v            # PC + IMEM fetch, stall and branch (Member 1)
-│   ├── tb_dmem.v                      # Self-checking DMEM testbench with reference model (Member 2)
-│   ├── tb_addr_rw.v                   # Decoder + R/W control + DMEM + L2 (Member 3)
-│   └── tb_harvard_top.v               # Full Phase I integration test (Member 4)
+│   ├── tb_phase1_harvard.v            # PC + IMEM fetch, stall and branch (Palak Gupta)
+│   ├── tb_dmem.v                      # Self-checking DMEM testbench with reference model (Atanu Adhikari)
+│   ├── tb_addr_rw.v                   # Decoder + R/W control + DMEM + L2 (Sambhav Kumar)
+│   └── tb_harvard_top.v               # Full Phase I integration test (Prince Singh)
 └── docs/
     ├── phase1_report_ieee.md          # Combined Phase I IEEE report (all sections)
     ├── Phase1_Report_TLE.pdf          # Same report as PDF
-    ├── abstract_introduction_ieee.md  # Abstract & Section I (Member 2)
-    ├── literature_review_ieee.md      # Section II (Member 3)
-    ├── proposed_solution_ieee.md      # Section III (Member 1)
+    ├── abstract_introduction_ieee.md  # Abstract & Section I (Atanu Adhikari)
+    ├── literature_review_ieee.md      # Section II (Sambhav Kumar)
+    ├── proposed_solution_ieee.md      # Section III (Palak Gupta)
     └── figures/                       # Waveform figures rendered from the simulation VCDs
 ```
 

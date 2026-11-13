@@ -25,10 +25,10 @@ Project 9 of the course asks for a simplified Harvard-style memory organization.
 ### D. Phase I Status
 | Module | Owner | Status |
 | :--- | :--- | :--- |
-| `program_counter.v`, `instruction_memory.v`, `tb_phase1_harvard.v` | Member 1 | Implemented, fetch/stall/branch waveform produced (`make sim_fetch`) |
-| `data_memory.v`, `tb_dmem.v` | Member 2 | Implemented, self-checking testbench passes (`make sim_dmem`: 1584 checks, 0 errors) |
-| `address_decoder.v`, `rw_control.v`, `shared_l2_memory.v`, `tb_addr_rw.v` | Member 3 | Implemented, self-checking testbench passes (`make sim_addr_rw`: 26 checks, 0 errors) |
-| `harvard_top.v`, `tb_harvard_top.v` | Member 4 | Integrated PC/IMEM + decoder/R-W control + DMEM + L2, testbench passes (`make sim_harvard_top`: 25 checks, 0 errors) |
+| `program_counter.v`, `instruction_memory.v`, `tb_phase1_harvard.v` | Palak Gupta (palak22291) | Implemented, fetch/stall/branch waveform produced (`make sim_fetch`) |
+| `data_memory.v`, `tb_dmem.v` | Atanu Adhikari (techatanu) | Implemented, self-checking testbench passes (`make sim_dmem`: 1584 checks, 0 errors) |
+| `address_decoder.v`, `rw_control.v`, `shared_l2_memory.v`, `tb_addr_rw.v` | Sambhav Kumar (alGo-explO) | Implemented, self-checking testbench passes (`make sim_addr_rw`: 26 checks, 0 errors) |
+| `harvard_top.v`, `tb_harvard_top.v` | Prince Singh (princesingh2024) | Integrated PC/IMEM + decoder/R-W control + DMEM + L2, testbench passes (`make sim_harvard_top`: 25 checks, 0 errors) |
 
 ### E. Report Organization
 Section II reviews related work on memory organizations. Section III describes the proposed Harvard memory subsystem and its timing behavior. Section IV presents the Phase I simulation results; the comparison with the von Neumann baseline is added in Phase II. Section V concludes the report and outlines Phase II, and Section VI lists individual contributions.
