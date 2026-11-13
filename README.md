@@ -79,6 +79,7 @@ tle-harvard-memory-hierarchy/
     ├── abstract_introduction_ieee.md  # Abstract & Section I (Atanu Adhikari)
     ├── literature_review_ieee.md      # Section II (Sambhav Kumar)
     ├── proposed_solution_ieee.md      # Section III (Palak Gupta)
+    ├── individual_contributions_ieee.md # Section VI (all members)
     └── figures/                       # Waveform figures rendered from the simulation VCDs
 ```
 
