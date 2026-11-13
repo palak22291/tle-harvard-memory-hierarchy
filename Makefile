@@ -10,5 +10,16 @@ sim_dmem:
 	$(IVERILOG) $(CFLAGS) -o sim/dmem.vvp rtl/harvard/data_memory.v tb/tb_dmem.v
 	$(VVP) sim/dmem.vvp
 
+sim_addr_rw:
+	$(IVERILOG) $(CFLAGS) -o sim/addr_rw.vvp \
+		rtl/harvard/address_decoder.v \
+		rtl/harvard/rw_control.v \
+		rtl/harvard/data_memory.v \
+		rtl/harvard/shared_l2_memory.v \
+		tb/tb_addr_rw.v
+	$(VVP) sim/addr_rw.vvp
+
+sim_all: sim_fetch sim_dmem sim_addr_rw
+
 clean:
 	rm -f sim/*.vvp sim/*.vcd
