@@ -99,6 +99,7 @@ module tb_harvard_top;
             req = 1; we = 1; d_be = be; d_addr = addr; d_wdata = data;
             @(posedge clk); #1;   // IDLE → ACTIVE
             @(posedge clk); #1;   // ACTIVE → IDLE  (memory write + d_ready)
+            while (!d_ready) begin @(posedge clk); #1; end   // FIX: wait for handshake
             check("write d_ready", d_ready, 1);
             @(negedge clk); req = 0; we = 0;
         end
@@ -112,6 +113,7 @@ module tb_harvard_top;
             req = 1; we = 0; d_be = 4'b0; d_addr = addr;
             @(posedge clk); #1;
             @(posedge clk); #1;
+            while (!d_ready) begin @(posedge clk); #1; end   // FIX: wait for handshake
             check("read d_ready", d_ready, 1);
             got = d_rdata;
             @(negedge clk); req = 0;
@@ -125,6 +127,7 @@ module tb_harvard_top;
             req = 1; we = 0; d_be = 4'b0; d_addr = addr;
             @(posedge clk); #1;
             @(posedge clk); #1;
+            while (!d_ready) begin @(posedge clk); #1; end   // FIX: wait for handshake
             check("err d_ready",    d_ready,          1);
             check("err addr_err",   invalid_addr_err, 1);
             @(negedge clk); req = 0;
