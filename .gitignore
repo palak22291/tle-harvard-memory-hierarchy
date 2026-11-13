@@ -5,3 +5,4 @@
 *.log
 sim/*
 !sim/.gitkeep
+graphify-out/
