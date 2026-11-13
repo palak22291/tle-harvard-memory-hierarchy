@@ -139,6 +139,7 @@ module tb_addr_rw;
             req = 1; we = 1; d_be = be; d_addr = addr; d_wdata = data;
             @(posedge clk); #1;         // ACTIVE state: decoder resolves
             @(posedge clk); #1;         // Memory write + d_ready
+            while (!d_ready) begin @(posedge clk); #1; end   // FIX: wait for handshake
             check("write d_ready", d_ready, 1);
             @(negedge clk);
             req = 0; we = 0;
@@ -153,6 +154,7 @@ module tb_addr_rw;
             req = 1; we = 0; d_be = 4'b0; d_addr = addr;
             @(posedge clk); #1;         // ACTIVE
             @(posedge clk); #1;         // Memory read + d_ready
+            while (!d_ready) begin @(posedge clk); #1; end   // FIX: wait for handshake
             check("read d_ready", d_ready, 1);
             got = d_rdata;
             @(negedge clk);
@@ -167,6 +169,7 @@ module tb_addr_rw;
             req = 1; we = 0; d_be = 4'b0; d_addr = addr;
             @(posedge clk); #1;         // ACTIVE
             @(posedge clk); #1;         // ERR + d_ready
+            while (!d_ready) begin @(posedge clk); #1; end   // FIX: wait for handshake
             check("err d_ready",         d_ready,          1);
             check("err invalid_addr_err", invalid_addr_err, 1);
             @(negedge clk);

@@ -15,9 +15,12 @@
 //   · Asserts `invalid_addr_err` when the decoder flags an unmapped address.
 //
 // Timing
-//   · Single-cycle FSM: IDLE → ACTIVE → IDLE.
-//   · `d_ready` is high for exactly one clock following an accepted request,
-//     matching the handshake convention used in data_memory.v.
+//   · FSM: IDLE → ACTIVE → WAIT → IDLE.
+//   · ACTIVE: asserts memory enable and transitions to WAIT (does NOT ack yet).
+//   · WAIT: polls dmem_ready / l2_ready; captures rdata and asserts d_ready
+//     exactly one cycle after the memory completes its synchronous access.
+//   · This correctly handles the 1-cycle synchronous-read latency of both
+//     data_memory.v and shared_l2_memory.v (FIX for Phase I test failures).
 //   · Byte-enable signals (d_be) are passed through unmodified so that
 //     data_memory and shared_l2_memory can implement byte-lane writes.
 //
@@ -69,8 +72,11 @@ module rw_control (
     localparam IDLE   = 2'b00;
     localparam ACTIVE = 2'b01;
     localparam ERR    = 2'b10;
+    localparam WAIT   = 2'b11;   // FIX: wait for the memory's ready pulse
 
     reg [1:0] state;
+    reg       sel_l2;            // FIX: which memory was started (0 = DMEM, 1 = L2)
+    reg       we_q;              // FIX: latched write-enable of the current transaction
 
     // =========================================================================
     // Helper: clear all memory-port outputs
@@ -93,6 +99,8 @@ module rw_control (
     always @(posedge clk) begin
         if (!rst_n) begin
             state           <= IDLE;
+            sel_l2          <= 1'b0;
+            we_q            <= 1'b0;
             d_valid         <= 1'b0;
             d_ready         <= 1'b0;
             d_rdata         <= {`DATA_WIDTH{1'b0}};
@@ -137,9 +145,9 @@ module rw_control (
                         dmem_be    <= d_be;
                         dmem_addr  <= d_addr;
                         dmem_wdata <= d_wdata;
-                        if (!we) d_rdata <= dmem_rdata; // read data mux
-                        d_ready    <= 1'b1;
-                        state      <= IDLE;
+                        sel_l2     <= 1'b0;   // FIX: remember target
+                        we_q       <= we;     // FIX: remember read/write
+                        state      <= WAIT;   // FIX: do NOT ack yet
 
                     end else if (cs_l2) begin
                         l2_en    <= 1'b1;
@@ -147,13 +155,22 @@ module rw_control (
                         l2_be    <= d_be;
                         l2_addr  <= d_addr;
                         l2_wdata <= d_wdata;
-                        if (!we) d_rdata <= l2_rdata; // read data mux
-                        d_ready  <= 1'b1;
-                        state    <= IDLE;
+                        sel_l2   <= 1'b1;     // FIX: remember target
+                        we_q     <= we;       // FIX: remember read/write
+                        state    <= WAIT;     // FIX: do NOT ack yet
 
                     end else begin
                         // Decoder not yet stable – hold one more cycle
                         d_valid <= 1'b1;
+                    end
+                end
+
+                // ---- FIX: memory has now performed the access ---------------
+                WAIT: begin
+                    if (sel_l2 ? l2_ready : dmem_ready) begin
+                        if (!we_q) d_rdata <= sel_l2 ? l2_rdata : dmem_rdata;
+                        d_ready <= 1'b1;
+                        state   <= IDLE;
                     end
                 end
 
