@@ -67,7 +67,7 @@ tle-harvard-memory-hierarchy/
 │   │   ├── rw_control.v               # Read/write control FSM: IDLE -> ACTIVE -> WAIT (Sambhav Kumar)
 │   │   ├── shared_l2_memory.v         # 512x32-bit shared lower-level (L2) memory (Sambhav Kumar)
 │   │   └── harvard_top.v              # Top-level Harvard hierarchy integration (Prince Singh)
-│   └── von_neumann/                   # Phase II shared-memory baseline comparison
+│   └── von_neumann/                   # Phase II shared-memory baseline (not yet created)
 ├── tb/
 │   ├── tb_phase1_harvard.v            # PC + IMEM fetch, stall and branch (Palak Gupta)
 │   ├── tb_dmem.v                      # Self-checking DMEM testbench with reference model (Atanu Adhikari)
