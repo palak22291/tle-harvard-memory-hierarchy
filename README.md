@@ -28,11 +28,12 @@ flowchart LR
     PC -->|"i_addr[31:0], imem_en"| IMEM
     IMEM -->|"i_rdata[31:0], i_ready"| CPU
 
-    CTRL -->|"d_addr[31:0], d_wdata[31:0]<br/>mem_req, mem_we"| DEC
+    CTRL -->|"d_addr[31:0], d_wdata[31:0], d_be[3:0]<br/>req, we"| DEC
     DEC -->|"dmem_en, dmem_we"| DMEM
     DEC -->|"l2_en, l2_we"| L2
-    DMEM -->|"d_rdata[31:0], d_ready"| CTRL
-    L2 -->|"l2_rdata[31:0], l2_ready"| CTRL
+    DMEM -->|"dmem_rdata, dmem_ready"| DEC
+    L2 -->|"l2_rdata, l2_ready"| DEC
+    DEC -->|"d_rdata[31:0], d_ready,<br/>invalid_addr_err"| CTRL
 ```
 
 ---
