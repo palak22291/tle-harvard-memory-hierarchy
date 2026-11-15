@@ -107,4 +107,4 @@ Waveforms open in GTKWave (`gtkwave sim/harvard_top.vcd`) or the VaporView VS Co
 
 ## 5. Phase I Deliverables & Links
 * **Phase I IEEE Project Report:** [`docs/phase1_report_ieee.md`](docs/phase1_report_ieee.md) · PDF: [`docs/Phase1_Report_TLE.pdf`](docs/Phase1_Report_TLE.pdf)
-* **Phase I Prototype Demo Video:** *(Link to be added before Nov 16 submission)*
+* **Phase I Prototype Demo Video:** [Watch on Google Drive](https://drive.google.com/file/d/1j7-Sij1sefN8flYvEZj6Y0V-DFXxNOJ8/view?usp=sharing)

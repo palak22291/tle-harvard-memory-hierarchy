@@ -6,3 +6,6 @@
 sim/*
 !sim/.gitkeep
 graphify-out/
+
+# Demo video is shared via Google Drive link in README (too large for git)
+docs/Video/
