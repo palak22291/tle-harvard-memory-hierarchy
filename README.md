@@ -120,4 +120,4 @@ Every member of **Team TLE** owns dedicated RTL modules, self-checking verificat
 ## 6. Project Artefacts & Documentation
 * **IEEE Research Paper (Markdown):** [`docs/phase2_research_paper_ieee.md`](docs/phase2_research_paper_ieee.md)
 * **IEEE Research Paper (Overleaf LaTeX):** [`docs/phase2_research_paper_ieee.tex`](docs/phase2_research_paper_ieee.tex)
-* **Phase I Combined Report (PDF):** [`docs/Phase1_Report_TLE.pdf`](docs/Phase1_Report_TLE.pdf)
+* **IEEE Research Paper (PDF):** [`docs/phase2_research_paper_ieee.pdf`](docs/phase2_research_paper_ieee.pdf)
