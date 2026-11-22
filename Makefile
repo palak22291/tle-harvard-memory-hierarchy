@@ -41,7 +41,15 @@ sim_l2_latency:
 		tb/tb_l2_latency.v
 	$(VVP) sim/l2_latency.vvp
 
-sim_all: sim_fetch sim_dmem sim_addr_rw sim_harvard_top sim_l2_latency
+# Phase II (Member 3): Von Neumann baseline - bus arbiter + unified memory
+sim_von_neumann:
+	$(IVERILOG) $(CFLAGS) -o sim/von_neumann.vvp \
+		rtl/von_neumann/unified_memory.v \
+		rtl/von_neumann/bus_arbiter.v \
+		tb/tb_von_neumann.v
+	$(VVP) sim/von_neumann.vvp
+
+sim_all: sim_fetch sim_dmem sim_addr_rw sim_harvard_top sim_l2_latency sim_von_neumann
 
 clean:
 	rm -f sim/*.vvp sim/*.vcd

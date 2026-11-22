@@ -72,13 +72,16 @@ tle-harvard-memory-hierarchy/
 │   │   ├── address_decoder.v              # Combinational bitmask address decoding (Member 3)
 │   │   ├── rw_control.v                   # 3-clock R/W transaction & response controller (Member 3)
 │   │   └── harvard_top.v                  # Top-level Harvard hierarchy integration (Member 4)
-│   └── von_neumann/                       # Phase II unified-memory baseline comparison
+│   └── von_neumann/                       # Phase II Von Neumann baseline (Member 3)
+│       ├── unified_memory.v               # 2048x32-bit single-port memory, code segment at 0x1000
+│       └── bus_arbiter.v                  # Data-priority arbiter, if_stall = structural-hazard flag
 ├── tb/
 │   ├── tb_phase1_harvard.v                # Self-checking PC + IMEM fetch, stall & branch testbench
 │   ├── tb_dmem.v                          # Self-checking Data Memory unit testbench (1712 checks)
 │   ├── tb_addr_rw.v                       # Self-checking Decoder + R/W Control testbench (26 checks)
 │   ├── tb_harvard_top.v                   # Self-checking Top-Level Harvard integration testbench (25 checks)
-│   └── tb_l2_latency.v                    # Phase II: L2 multi-cycle latency + data-path latency table (74 checks)
+│   ├── tb_l2_latency.v                    # Phase II: L2 multi-cycle latency + data-path latency table (74 checks)
+│   └── tb_von_neumann.v                   # Phase II: Von Neumann arbiter + unified memory (319 checks)
 └── docs/
     ├── phase2_research_paper_ieee.md      # Complete IEEE Research Paper (Markdown Master)
     └── phase2_research_paper_ieee.tex     # Complete IEEEtran Conference Research Paper (LaTeX)
@@ -101,6 +104,9 @@ make sim_dmem
 # Phase II: L2 latency model and DMEM vs L2 latency table
 make sim_l2_latency
 
+# Phase II: Von Neumann baseline (bus arbiter + unified memory)
+make sim_von_neumann
+
 # Run the Phase II Harvard vs. Von Neumann CPI & Stall Quantitative Analyzer
 python3 scripts/analyze_cpi.py
 ```
@@ -115,7 +121,7 @@ Every member of **Team TLE** owns dedicated RTL modules, self-checking verificat
 | :--- | :--- | :--- | :--- |
 | **Palak Gupta** *(Member 1)* | **Instruction Path, Memory Map & CPI Benchmarking** | • Initialized repository structure, `Makefile`, and global architecture macros (`rtl/common/defines.vh`)<br>• Designed 32-bit byte-aligned Program Counter (`rtl/common/program_counter.v`) with synchronous `stall` priority and `branch_en` control<br>• Implemented $256 \times 32$-bit synchronous Instruction ROM (`rtl/harvard/instruction_memory.v`) and self-checking fetch testbench (`tb/tb_phase1_harvard.v`)<br>• Authored Section III (*Proposed Architecture*) and system block diagram | • Designed the 16-instruction L1/L2 memory hierarchy benchmark suite (`programs/benchmark_suite.hex`)<br>• Developed the quantitative CPI and structural-hazard stall analyzer (`scripts/analyze_cpi.py`)<br>• Restructured the project report into full **IEEE Conference Research Paper** format (`docs/phase2_research_paper_ieee.tex` / `.md`) and authored Section VI (*Conclusion & Future Work*) |
 | **Atanu Adhikari** *(Member 2)* | **Data Memory Subsystem & L2 Latency** | • Designed $256 \times 32$-bit synchronous Local Data Memory (`rtl/harvard/data_memory.v`) with 4-bit byte-lane write strobes (`d_be[3:0]`) and 1-clock read latency<br>• Built self-checking unit testbench (`tb/tb_dmem.v`) passing 1,712 directed and randomized checks against a behavioral reference model<br>• Authored *Abstract* and *Section I (Introduction)* | • Added the multi-cycle latency model (`L2_LATENCY` wait states) to `rtl/harvard/shared_l2_memory.v`<br>• Built `tb/tb_l2_latency.v` (74 checks): L2 ready timing for latency 0/2/4 and end-to-end `DMEM` vs. L2 latency through `rw_control`<br>• Wrote Section IV-B (*Results & Discussion Part 1: Latency & Memory Hierarchy Behavior*) |
-| **Member 3** | **Address Decoding, R/W Control & Von Neumann Baseline** | • Implemented combinational bitmask Address Decoder (`rtl/harvard/address_decoder.v`) for `DMEM` (`0x0000_0000–0x0000_03FF`), 2 KB-aligned `L2` (`0x0000_0800–0x0000_0FFF`), and unmapped fault detection (`invalid_addr_err`)<br>• Designed the 3-clock finite-state Read/Write Controller (`rtl/harvard/rw_control.v`) and `tb/tb_addr_rw.v` (26 checks, 0 errors)<br>• Authored *Section II (Literature Review)* | • Modeled bus arbitration and structural hazard stalls for the unified Von Neumann baseline comparison<br>• Expanded *Section II (Related Work & Theoretical Background)* and curated the IEEE bibliography |
+| **Sambhav Kumar** *(Member 3)* | **Address Decoding, R/W Control & Von Neumann Baseline** | • Implemented combinational bitmask Address Decoder (`rtl/harvard/address_decoder.v`) for `DMEM` (`0x0000_0000–0x0000_03FF`), 2 KB-aligned `L2` (`0x0000_0800–0x0000_0FFF`), and unmapped fault detection (`invalid_addr_err`)<br>• Designed the 3-clock finite-state Read/Write Controller (`rtl/harvard/rw_control.v`) and `tb/tb_addr_rw.v` (26 checks, 0 errors)<br>• Authored *Section II (Literature Review)* | • Built the Von Neumann baseline: single-port `rtl/von_neumann/unified_memory.v` (code segment at `0x1000`) and data-priority `rtl/von_neumann/bus_arbiter.v` with the `if_stall` structural-hazard flag<br>• Built `tb/tb_von_neumann.v` (319 checks, including 200 random overlapping fetch/data pairs vs. a reference model)<br>• Expanded *Section II* (II-C to II-F) and formatted the IEEE references |
 | **Member 4** | **Top-Level Integration & Comparative Verification** | • Integrated all instruction and data subsystems inside `rtl/harvard/harvard_top.v`<br>• Built the top-level self-checking verification suite (`tb/tb_harvard_top.v`, 25 checks, 0 errors) proving concurrent `IMEM` fetch and `DMEM`/`L2` data access<br>• Compiled *Individual Contributions* and Phase I deliverables | • Conducted end-to-end cycle-accurate waveform comparisons between Harvard and shared-memory organizations<br>• Co-authored *Section IV (Results and Discussion)* tables and synthesized comparative performance metrics |
 
 ---

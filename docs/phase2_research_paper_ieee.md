@@ -1,6 +1,6 @@
 # Design, Verification, and Quantitative Evaluation of a 32-Bit Harvard Instruction and Data Memory Hierarchy in Verilog RTL
 
-**Authors:** Palak Gupta, Atanu Adhikari, Member 3, and Member 4 *(Team TLE)*  
+**Authors:** Palak Gupta, Atanu Adhikari, Sambhav Kumar, and Member 4 *(Team TLE)*  
 **Course:** Modern Computer Architecture — Research Paper Report  
 
 ---
@@ -35,6 +35,18 @@ where $f_{\text{mem}}$ denotes the fraction of instructions that access data mem
 
 ### B. Modified Harvard Memory Hierarchies and Address Decoding
 Smith [4] demonstrated that splitting Level-1 (L1) storage into dedicated instruction and data memories eliminates port contention while permitting a unified or shared lower-level (`L2`) backing store to amortize capacity cost. Furthermore, Harris and Harris [5] establish that power-of-two bitmask decoding (`(addr & MASK) == BASE`) minimizes combinational critical-path delay in hardware address decoders by avoiding full 32-bit magnitude comparators, provided each memory region is aligned to a natural power-of-two boundary.
+
+### C. The Shared-Bus Baseline and Bus Arbitration
+The stored-program design described by von Neumann [6] keeps instructions and data in one memory reached through one path, and that organization is the baseline used for comparison in this paper. When two requesters share one memory port, an arbiter must decide who is served first. On-chip bus standards such as ARM AMBA [7] place this decision in a central arbiter that grants the bus to one master at a time, and fixed-priority arbitration is the simplest such policy. For a processor, the natural priority is to serve the data access of the instruction that is already executing before fetching the next one, because the executing instruction cannot finish without its operand. The Von Neumann baseline in this work (`bus_arbiter.v`) uses exactly this policy, and it reports every cycle in which a fetch is waiting for a data transfer as a structural-hazard stall (`if_stall`).
+
+### D. The Memory Wall and Multi-Level Latency
+Wulf and McKee [8] observed that processor speed was improving much faster than memory speed, so that average memory access time would come to dominate execution time, a trend they called the *memory wall*. Access time also grows with memory size: the CACTI model of Wilton and Jouppi [9] estimates SRAM access and cycle time from array organization, and larger arrays are slower. This is why a small, fast local memory is placed in front of a larger, slower one. The Phase II L2 latency parameter (`L2_LATENCY`) models this cost directly by adding wait states to the larger 2 KB tier while the 1 KB `DMEM` keeps its single-clock array access.
+
+### E. Fetch-Ahead Buffers
+Jouppi [10] showed that small prefetch (stream) buffers placed beside a cache hide part of the miss latency by fetching sequential lines before they are requested. The CPU driver used for the comparison in this paper applies the same idea at its simplest: a one-entry instruction buffer that fetches instruction *N+1* while instruction *N* executes. Whether that fetch can actually overlap a data access depends on the memory organization, which is the effect this paper measures.
+
+### F. Positioning of This Work
+The references above explain the bottleneck analytically [1], [3], [8] or describe how real buses and caches avoid it [4], [7], [10]. This paper adds a small, fully open RTL experiment: the same CPU driver and the same instruction stream run on a Harvard hierarchy and on a Von Neumann baseline, with the same memory technology behind both, and the cycle counts, stall counts and final memory contents are compared from simulation rather than from a formula.
 
 ---
 
@@ -75,6 +87,7 @@ All modules were compiled and simulated using Icarus Verilog (`iverilog -g2012`)
 | `tb_dmem.v` | `data_memory` | Power-on zero init, full-word R/W, 1-clock read latency, `0x3FC` boundary, 256-word fill, `d_be[3:0]` byte-lanes, 16 back-to-back reads, 500 random ops vs. reference model, all 16 `d_be` patterns, address aliasing, async `d_ready` clear | 1,712 checks | 0 | **PASSED** |
 | `tb_addr_rw.v` | `address_decoder`, `rw_control`, `data_memory`, `shared_l2_memory` | `DMEM` full/byte R/W, `L2` R/W at `0x0800` & `0x0FFC`, unmapped fault at `0x0500` (`invalid_addr_err`), alternating `DMEM`/`L2` multiplexing | 26 checks | 0 | **PASSED** |
 | `tb_harvard_top.v` | `harvard_top` (Full System Integration) | `IMEM` sequential/branch fetches, `DMEM` (`0x000`, `0x3FC`), `L2` (`0x800`, `0xFFC`), byte-lane, and fault (`0x500`) transactions | 25 checks | 0 | **PASSED** |
+| `tb_von_neumann.v` | `bus_arbiter`, `unified_memory` (Von Neumann baseline) | Fetch from code segment `0x1000`, data-window R/W, code not overwritten by `STORE 0x000`, data-over-fetch priority with `if_stall`, L2-window wait states, byte lanes, 200 random overlapping fetch/data pairs vs. reference model, per-cycle bus monitor | 319 checks | 0 | **PASSED** |
 | `tb_l2_latency.v` | `shared_l2_memory` (`L2_LATENCY` = 0/2/4), full data path | Ready timing per latency, data hidden until ready, byte lanes, request-while-busy ignored, back-to-back access, end-to-end `req`→`d_ready` latency | 74 checks | 0 | **PASSED** |
 
 ### B. Results and Discussion, Part 1: Latency and Memory Hierarchy Behavior
@@ -120,7 +133,7 @@ Waveform inspection of `sim/harvard_top.vcd` confirms three key architectural be
 | :--- | :--- | :--- |
 | **Palak Gupta (Member 1)** | `rtl/common/defines.vh`, `rtl/common/program_counter.v`, `rtl/harvard/instruction_memory.v`, `tb/tb_phase1_harvard.v`, `programs/test_program.hex`, `programs/benchmark_suite.hex`, `scripts/analyze_cpi.py` | Authored Section III (*Proposed Architecture & Analytical Model*), Section VI (*Conclusion & Future Work*), system block diagram, and formatted the full IEEE Research Paper. |
 | **Atanu Adhikari (Member 2)** | `rtl/harvard/data_memory.v`, `tb/tb_dmem.v` (1,712 self-checking assertions); Phase II: multi-cycle `L2_LATENCY` model in `rtl/harvard/shared_l2_memory.v`, `tb/tb_l2_latency.v` (74 assertions, latency table) | Authored the *Abstract*, *Section I (Introduction)*, and Section IV-B (*Results and Discussion, Part 1: Latency and Memory Hierarchy Behavior*). |
-| **Member 3** | `rtl/harvard/address_decoder.v`, `rtl/harvard/rw_control.v`, `tb/tb_addr_rw.v` (26 self-checking assertions) | Authored *Section II (Related Work & Theoretical Background)*, bitmask decoding proofs, and IEEE references. |
+| **Sambhav Kumar (Member 3)** | `rtl/harvard/address_decoder.v`, `rtl/harvard/rw_control.v`, `rtl/harvard/shared_l2_memory.v`, `tb/tb_addr_rw.v` (26 assertions); Phase II: Von Neumann baseline `rtl/von_neumann/unified_memory.v` and `rtl/von_neumann/bus_arbiter.v`, `tb/tb_von_neumann.v` (319 assertions) | Authored *Section II (Related Work & Theoretical Background)*, expanded it in Phase II (Sections II-C to II-F), and formatted the IEEE references. |
 | **Member 4** | `rtl/harvard/harvard_top.v`, `tb/tb_harvard_top.v` (25 self-checking integration assertions) | Authored *Section IV (Experimental Evaluation, Results & Discussion)* and compiled *Section V (Individual Contributions)*. |
 
 ---
@@ -138,3 +151,8 @@ Future extensions to this work include integrating a set-associative L1 Instruct
 [3] J. Backus, "Can programming be liberated from the von Neumann style? A functional style and its algebra of programs," *Communications of the ACM*, vol. 21, no. 8, pp. 613–641, Aug. 1978.  
 [4] A. J. Smith, "Cache memories," *ACM Computing Surveys (CSUR)*, vol. 14, no. 3, pp. 473–530, Sept. 1982.  
 [5] S. L. Harris and D. M. Harris, *Digital Design and Computer Architecture: RISC-V Edition*. San Francisco, CA, USA: Morgan Kaufmann, 2021.  
+[6] J. von Neumann, "First Draft of a Report on the EDVAC," Moore School of Electrical Engineering, University of Pennsylvania, Philadelphia, PA, USA, Tech. Rep., Jun. 1945.  
+[7] ARM Ltd., *AMBA Specification (Rev 2.0)*, ARM IHI 0011A, Cambridge, U.K., 1999.  
+[8] W. A. Wulf and S. A. McKee, "Hitting the memory wall: Implications of the obvious," *ACM SIGARCH Computer Architecture News*, vol. 23, no. 1, pp. 20–24, Mar. 1995.  
+[9] S. J. E. Wilton and N. P. Jouppi, "CACTI: An enhanced cache access and cycle time model," *IEEE Journal of Solid-State Circuits*, vol. 31, no. 5, pp. 677–688, May 1996.  
+[10] N. P. Jouppi, "Improving direct-mapped cache performance by the addition of a small fully-associative cache and prefetch buffers," in *Proc. 17th Annu. Int. Symp. Computer Architecture (ISCA)*, Seattle, WA, USA, 1990, pp. 364–373.  
