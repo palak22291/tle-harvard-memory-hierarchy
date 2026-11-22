@@ -1,6 +1,6 @@
 # Design, Verification, and Quantitative Evaluation of a 32-Bit Harvard Instruction and Data Memory Hierarchy in Verilog RTL
 
-**Authors:** Palak Gupta, Member 2, Member 3, and Member 4 *(Team TLE)*  
+**Authors:** Palak Gupta, Atanu Adhikari, Member 3, and Member 4 *(Team TLE)*  
 **Course:** Modern Computer Architecture — Research Paper Report  
 
 ---
@@ -72,11 +72,28 @@ All modules were compiled and simulated using Icarus Verilog (`iverilog -g2012`)
 | Testbench Module | Target RTL Subsystems Verified | Directed & Randomized Test Vectors | Assertions Checked | Errors | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `tb_phase1_harvard.v` | `program_counter`, `instruction_memory` | Reset idle, sequential fetch (`seq_0`–`seq_5`), stall hold, branch jump, stall-over-branch priority, mid-run async reset | 12 state vectors | 0 | **PASSED** |
-| `tb_dmem.v` | `data_memory` | Power-on zero init, full-word R/W, 1-clock read latency, `0x3FC` boundary, 256-word fill, `d_be[3:0]` byte-lanes, 16 back-to-back reads, 500 random ops vs. reference model | 1,584 checks | 0 | **PASSED** |
+| `tb_dmem.v` | `data_memory` | Power-on zero init, full-word R/W, 1-clock read latency, `0x3FC` boundary, 256-word fill, `d_be[3:0]` byte-lanes, 16 back-to-back reads, 500 random ops vs. reference model, all 16 `d_be` patterns, address aliasing, async `d_ready` clear | 1,712 checks | 0 | **PASSED** |
 | `tb_addr_rw.v` | `address_decoder`, `rw_control`, `data_memory`, `shared_l2_memory` | `DMEM` full/byte R/W, `L2` R/W at `0x0800` & `0x0FFC`, unmapped fault at `0x0500` (`invalid_addr_err`), alternating `DMEM`/`L2` multiplexing | 26 checks | 0 | **PASSED** |
-| `tb_harvard_top.v` | `harvard_top` (Full System Integration) | Concurrent `IMEM` sequential/branch fetches during active `DMEM` (`0x000`, `0x3FC`), `L2` (`0x800`, `0xFFC`), byte-lane, and fault (`0x500`) transactions | 25 checks | 0 | **PASSED** |
+| `tb_harvard_top.v` | `harvard_top` (Full System Integration) | `IMEM` sequential/branch fetches, `DMEM` (`0x000`, `0x3FC`), `L2` (`0x800`, `0xFFC`), byte-lane, and fault (`0x500`) transactions | 25 checks | 0 | **PASSED** |
+| `tb_l2_latency.v` | `shared_l2_memory` (`L2_LATENCY` = 0/2/4), full data path | Ready timing per latency, data hidden until ready, byte lanes, request-while-busy ignored, back-to-back access, end-to-end `req`→`d_ready` latency | 74 checks | 0 | **PASSED** |
 
-### B. Quantitative Comparison: Harvard vs. Von Neumann Architecture
+### B. Results and Discussion, Part 1: Latency and Memory Hierarchy Behavior
+In Phase I the shared L2 answered in the same single clock as `DMEM`, so the two tiers of the hierarchy could not be told apart in timing. For Phase II, `shared_l2_memory.v` gained a parameter `L2_LATENCY` that adds wait states to every L2 access. The request is accepted on the clock edge that samples `l2_en`. Writes update the array at that edge, but `l2_ready` and, for reads, the new `l2_rdata` appear `L2_LATENCY` clocks later than in Phase I. A request that arrives while the memory is busy is ignored. `rw_control` already waits for `l2_ready` in its `WAIT` state, so it needed no change, and `L2_LATENCY = 0` reproduces the Phase I timing exactly (all Phase I testbenches still pass).
+
+Table III lists the latency seen by the requester, counted in clocks from asserting `req` to `d_ready`, as measured by `tb_l2_latency.v` (`make sim_l2_latency`) on three copies of the complete data path.
+
+| `L2_LATENCY` | `DMEM` write | `DMEM` read | `L2` write | `L2` read |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 (Phase I) | 4 | 4 | 4 | 4 |
+| 2 | 4 | 4 | 6 | 6 |
+| 4 | 4 | 4 | 8 | 8 |
+
+Three observations follow from the measurements:
+1. **Fixed controller overhead.** A local `DMEM` access costs 4 clocks end to end, although the SRAM itself has a 1-clock synchronous read. The other 3 clocks come from the handshake: `rw_control` spends one clock driving `d_valid` to the decoder (`IDLE`→`ACTIVE`), one clock pulsing the memory enable, and one clock in `WAIT` registering the read data and `d_ready`. Reads and writes cost the same because both wait for the memory's ready pulse.
+2. **The hierarchy is visible in timing.** `DMEM` latency stays at 4 clocks for every L2 setting, while each extra L2 wait state adds exactly one clock to every L2 transaction. Data placed in the local 1 KB `DMEM` is therefore always at least as fast as data in the 2 KB L2, which is the reason for keeping frequently used operands in the lower address window.
+3. **Read data is hidden until it is valid.** With `L2_LATENCY > 0`, `l2_rdata` keeps its previous value until `l2_ready` rises, so the controller cannot capture a stale word early. This is the same failure that caused the Phase I stale-read bug, now closed off at the memory as well as in `rw_control`.
+
+### C. Quantitative Comparison: Harvard vs. Von Neumann Architecture
 To evaluate architectural performance under realistic load/store pressure, both the proposed Harvard organization and an equivalent single-bus Von Neumann baseline were evaluated against the 16-instruction benchmark suite (`programs/benchmark_suite.hex` and `scripts/analyze_cpi.py`), comprising 8 `DMEM` operations (50%), 4 `Shared L2` operations (25%), and 4 `ALU/NOP` operations (25%).
 
 | Performance Metric | Harvard Split Memory Hierarchy | Von Neumann Unified-Bus Baseline | Analytical Improvement |
@@ -89,7 +106,7 @@ To evaluate architectural performance under realistic load/store pressure, both 
 | **Total Execution Time (Clock Cycles)** | **20 clock cycles** | **56 clock cycles** | **36 fewer clock cycles** |
 | **Effective Cycles Per Instruction (CPI)** | **1.25 CPI** (1.00 on L1-only hits) | **3.50 CPI** | **$2.80\times$ throughput speedup** |
 
-### C. Discussion of Timing and Architectural Trade-offs
+### D. Discussion of Timing and Architectural Trade-offs
 Waveform inspection of `sim/harvard_top.vcd` confirms three key architectural behaviors:
 1. **Elimination of Structural Stalls:** During `T3` (`DMEM` write/read at `0x0000_0000`) and `T4` (`L2` write/read at `0x0000_0800`), `pc_out` continues incrementing by 4 bytes every clock cycle and `i_rdata` delivers valid instructions (`i_ready = 1`) without asserting `stall`.
 2. **Hardware Memory Protection:** When the controller issues an access to unmapped gap address `0x0000_0500` (`T5`), neither `dmem_en` nor `l2_en` asserts, preventing accidental data corruption and immediately raising `invalid_addr_err`.
@@ -102,7 +119,7 @@ Waveform inspection of `sim/harvard_top.vcd` confirms three key architectural be
 | Team Member | Assigned Modules & Verification Artefacts | Research Paper & Documentation Contributions |
 | :--- | :--- | :--- |
 | **Palak Gupta (Member 1)** | `rtl/common/defines.vh`, `rtl/common/program_counter.v`, `rtl/harvard/instruction_memory.v`, `tb/tb_phase1_harvard.v`, `programs/test_program.hex`, `programs/benchmark_suite.hex`, `scripts/analyze_cpi.py` | Authored Section III (*Proposed Architecture & Analytical Model*), Section VI (*Conclusion & Future Work*), system block diagram, and formatted the full IEEE Research Paper. |
-| **Member 2** | `rtl/harvard/data_memory.v`, `rtl/harvard/shared_l2_memory.v`, `tb/tb_dmem.v` (1,584 self-checking assertions) | Authored the *Abstract*, *Section I (Introduction)*, and SRAM byte-enable/latency analysis in Section IV. |
+| **Atanu Adhikari (Member 2)** | `rtl/harvard/data_memory.v`, `tb/tb_dmem.v` (1,712 self-checking assertions); Phase II: multi-cycle `L2_LATENCY` model in `rtl/harvard/shared_l2_memory.v`, `tb/tb_l2_latency.v` (74 assertions, latency table) | Authored the *Abstract*, *Section I (Introduction)*, and Section IV-B (*Results and Discussion, Part 1: Latency and Memory Hierarchy Behavior*). |
 | **Member 3** | `rtl/harvard/address_decoder.v`, `rtl/harvard/rw_control.v`, `tb/tb_addr_rw.v` (26 self-checking assertions) | Authored *Section II (Related Work & Theoretical Background)*, bitmask decoding proofs, and IEEE references. |
 | **Member 4** | `rtl/harvard/harvard_top.v`, `tb/tb_harvard_top.v` (25 self-checking integration assertions) | Authored *Section IV (Experimental Evaluation, Results & Discussion)* and compiled *Section V (Individual Contributions)*. |
 

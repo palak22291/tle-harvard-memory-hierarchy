@@ -19,10 +19,23 @@
 // Read-during-write: NO_CHANGE – l2_rdata keeps its value during a write.
 // l2_ready      : asserted for one cycle after every accepted access.
 //
+// Phase II (Member 2) - multi-cycle latency model:
+//   L2_LATENCY    : number of extra wait states added to every access.
+//                   0 (default) = Phase I behaviour, l2_ready one clock after
+//                   l2_en is sampled.  N > 0 = l2_ready (and, for reads, the
+//                   new l2_rdata) appear N clocks later than that, modelling
+//                   a slower lower-level memory.
+//   While an access is in flight the memory is busy; an l2_en pulse that
+//   arrives while busy is ignored (rw_control never issues one, because it
+//   waits for l2_ready before starting the next transaction).
+//   Writes update the array when the request is accepted; only the
+//   acknowledge is delayed.
+//
 // No reset on the storage array → synthesis infers block RAM.
 // -----------------------------------------------------------------------------
 module shared_l2_memory #(
-    parameter MEM_INIT_FILE = ""                    // optional $readmemh preload
+    parameter MEM_INIT_FILE = "",                   // optional $readmemh preload
+    parameter L2_LATENCY    = 0                     // extra wait states (0 = Phase I)
 )(
     input  wire                   clk,
     input  wire                   rst_n,            // async reset, active low (outputs only)
@@ -50,30 +63,57 @@ module shared_l2_memory #(
     end
 
     // -------------------------------------------------------------------------
+    // Latency counter: 0 = idle, otherwise clocks left until l2_ready.
+    // -------------------------------------------------------------------------
+    reg [7:0]             wait_cnt;
+    reg                   rd_pend;                  // in-flight access is a read
+    reg [`DATA_WIDTH-1:0] rd_buf;                   // read data held until ready
+
+    wire accept = l2_en && (wait_cnt == 8'd0);      // new request taken this edge
+
+    // -------------------------------------------------------------------------
     // Storage array – byte-lane writes, synchronous read (NO_CHANGE on write)
     // -------------------------------------------------------------------------
     always @(posedge clk) begin
-        if (l2_en) begin
+        if (accept) begin
             if (l2_we) begin
                 if (l2_be[0]) ram[word_addr][7:0]   <= l2_wdata[7:0];
                 if (l2_be[1]) ram[word_addr][15:8]  <= l2_wdata[15:8];
                 if (l2_be[2]) ram[word_addr][23:16] <= l2_wdata[23:16];
                 if (l2_be[3]) ram[word_addr][31:24] <= l2_wdata[31:24];
                 // NO_CHANGE: l2_rdata keeps its value (do not update)
+            end else if (L2_LATENCY == 0) begin
+                l2_rdata <= ram[word_addr];         // Phase I: data next clock
             end else begin
-                l2_rdata <= ram[word_addr];
+                rd_buf   <= ram[word_addr];         // held until the wait ends
             end
+        end else if (L2_LATENCY != 0 && wait_cnt == 8'd1 && rd_pend) begin
+            l2_rdata <= rd_buf;                     // data appears with l2_ready
         end
     end
 
     // -------------------------------------------------------------------------
-    // Handshake flag – mirrors data_memory convention
+    // Handshake flag and wait-state counter (async reset, outputs only)
     // -------------------------------------------------------------------------
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
+        if (!rst_n) begin
             l2_ready <= 1'b0;
-        else
-            l2_ready <= l2_en;
+            wait_cnt <= 8'd0;
+            rd_pend  <= 1'b0;
+        end else if (accept) begin
+            rd_pend  <= ~l2_we;
+            if (L2_LATENCY == 0) begin
+                l2_ready <= 1'b1;
+            end else begin
+                l2_ready <= 1'b0;
+                wait_cnt <= L2_LATENCY;
+            end
+        end else if (wait_cnt != 8'd0) begin
+            wait_cnt <= wait_cnt - 8'd1;
+            l2_ready <= (wait_cnt == 8'd1);
+        end else begin
+            l2_ready <= 1'b0;
+        end
     end
 
     initial l2_rdata = {`DATA_WIDTH{1'b0}};

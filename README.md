@@ -68,18 +68,18 @@ tle-harvard-memory-hierarchy/
 │   ├── harvard/
 │   │   ├── instruction_memory.v           # 256x32-bit synchronous Instruction ROM (Member 1)
 │   │   ├── data_memory.v                  # 256x32-bit synchronous Data RAM with byte-enables (Member 2)
-│   │   ├── shared_l2_memory.v             # 512x32-bit Shared Lower-Level Memory (Member 2 / Member 3)
+│   │   ├── shared_l2_memory.v             # 512x32-bit Shared L2, L2_LATENCY wait states (Member 3 / Member 2)
 │   │   ├── address_decoder.v              # Combinational bitmask address decoding (Member 3)
 │   │   ├── rw_control.v                   # 3-clock R/W transaction & response controller (Member 3)
 │   │   └── harvard_top.v                  # Top-level Harvard hierarchy integration (Member 4)
 │   └── von_neumann/                       # Phase II unified-memory baseline comparison
 ├── tb/
 │   ├── tb_phase1_harvard.v                # Self-checking PC + IMEM fetch, stall & branch testbench
-│   ├── tb_dmem.v                          # Self-checking Data Memory unit testbench (1584 checks)
+│   ├── tb_dmem.v                          # Self-checking Data Memory unit testbench (1712 checks)
 │   ├── tb_addr_rw.v                       # Self-checking Decoder + R/W Control testbench (26 checks)
-│   └── tb_harvard_top.v                   # Self-checking Top-Level Harvard integration testbench (25 checks)
+│   ├── tb_harvard_top.v                   # Self-checking Top-Level Harvard integration testbench (25 checks)
+│   └── tb_l2_latency.v                    # Phase II: L2 multi-cycle latency + data-path latency table (74 checks)
 └── docs/
-    ├── proposed_solution_ieee.md          # Section III: Proposed Architecture & Analytical Model
     ├── phase2_research_paper_ieee.md      # Complete IEEE Research Paper (Markdown Master)
     └── phase2_research_paper_ieee.tex     # Complete IEEEtran Conference Research Paper (LaTeX)
 ```
@@ -98,6 +98,9 @@ make sim_all
 make sim_fetch
 make sim_dmem
 
+# Phase II: L2 latency model and DMEM vs L2 latency table
+make sim_l2_latency
+
 # Run the Phase II Harvard vs. Von Neumann CPI & Stall Quantitative Analyzer
 python3 scripts/analyze_cpi.py
 ```
@@ -111,7 +114,7 @@ Every member of **Team TLE** owns dedicated RTL modules, self-checking verificat
 | Team Member | Role & Subsystem | Phase I Contributions (RTL, Verification & Report) | Phase II Contributions (Benchmarking, Comparison & Research Paper) |
 | :--- | :--- | :--- | :--- |
 | **Palak Gupta** *(Member 1)* | **Instruction Path, Memory Map & CPI Benchmarking** | • Initialized repository structure, `Makefile`, and global architecture macros (`rtl/common/defines.vh`)<br>• Designed 32-bit byte-aligned Program Counter (`rtl/common/program_counter.v`) with synchronous `stall` priority and `branch_en` control<br>• Implemented $256 \times 32$-bit synchronous Instruction ROM (`rtl/harvard/instruction_memory.v`) and self-checking fetch testbench (`tb/tb_phase1_harvard.v`)<br>• Authored Section III (*Proposed Architecture*) and system block diagram | • Designed the 16-instruction L1/L2 memory hierarchy benchmark suite (`programs/benchmark_suite.hex`)<br>• Developed the quantitative CPI and structural-hazard stall analyzer (`scripts/analyze_cpi.py`)<br>• Restructured the project report into full **IEEE Conference Research Paper** format (`docs/phase2_research_paper_ieee.tex` / `.md`) and authored Section VI (*Conclusion & Future Work*) |
-| **Member 2** | **Data Memory Subsystem & L2 Storage** | • Designed $256 \times 32$-bit synchronous Local Data Memory (`rtl/harvard/data_memory.v`) with 4-bit byte-lane write strobes (`d_be[3:0]`) and 1-clock read latency<br>• Built self-checking unit testbench (`tb/tb_dmem.v`) passing 1,584 directed and randomized checks against a behavioral reference model<br>• Authored *Abstract* and *Section I (Introduction)* | • Implemented and verified the $512 \times 32$-bit Shared Lower-Level Memory (`rtl/harvard/shared_l2_memory.v`)<br>• Analyzed L1 (`DMEM`) vs. L2 read/write latency behavior and byte-masked store timing for Section IV (*Experimental Evaluation*) |
+| **Atanu Adhikari** *(Member 2)* | **Data Memory Subsystem & L2 Latency** | • Designed $256 \times 32$-bit synchronous Local Data Memory (`rtl/harvard/data_memory.v`) with 4-bit byte-lane write strobes (`d_be[3:0]`) and 1-clock read latency<br>• Built self-checking unit testbench (`tb/tb_dmem.v`) passing 1,712 directed and randomized checks against a behavioral reference model<br>• Authored *Abstract* and *Section I (Introduction)* | • Added the multi-cycle latency model (`L2_LATENCY` wait states) to `rtl/harvard/shared_l2_memory.v`<br>• Built `tb/tb_l2_latency.v` (74 checks): L2 ready timing for latency 0/2/4 and end-to-end `DMEM` vs. L2 latency through `rw_control`<br>• Wrote Section IV-B (*Results & Discussion Part 1: Latency & Memory Hierarchy Behavior*) |
 | **Member 3** | **Address Decoding, R/W Control & Von Neumann Baseline** | • Implemented combinational bitmask Address Decoder (`rtl/harvard/address_decoder.v`) for `DMEM` (`0x0000_0000–0x0000_03FF`), 2 KB-aligned `L2` (`0x0000_0800–0x0000_0FFF`), and unmapped fault detection (`invalid_addr_err`)<br>• Designed the 3-clock finite-state Read/Write Controller (`rtl/harvard/rw_control.v`) and `tb/tb_addr_rw.v` (26 checks, 0 errors)<br>• Authored *Section II (Literature Review)* | • Modeled bus arbitration and structural hazard stalls for the unified Von Neumann baseline comparison<br>• Expanded *Section II (Related Work & Theoretical Background)* and curated the IEEE bibliography |
 | **Member 4** | **Top-Level Integration & Comparative Verification** | • Integrated all instruction and data subsystems inside `rtl/harvard/harvard_top.v`<br>• Built the top-level self-checking verification suite (`tb/tb_harvard_top.v`, 25 checks, 0 errors) proving concurrent `IMEM` fetch and `DMEM`/`L2` data access<br>• Compiled *Individual Contributions* and Phase I deliverables | • Conducted end-to-end cycle-accurate waveform comparisons between Harvard and shared-memory organizations<br>• Co-authored *Section IV (Results and Discussion)* tables and synthesized comparative performance metrics |
 
@@ -121,3 +124,4 @@ Every member of **Team TLE** owns dedicated RTL modules, self-checking verificat
 * **IEEE Research Paper (Markdown):** [`docs/phase2_research_paper_ieee.md`](docs/phase2_research_paper_ieee.md)
 * **IEEE Research Paper (Overleaf LaTeX):** [`docs/phase2_research_paper_ieee.tex`](docs/phase2_research_paper_ieee.tex)
 * **IEEE Research Paper (PDF):** [`docs/phase2_research_paper_ieee.pdf`](docs/phase2_research_paper_ieee.pdf)
+* **Phase I Prototype Demo Video:** [Watch on Google Drive](https://drive.google.com/file/d/1j7-Sij1sefN8flYvEZj6Y0V-DFXxNOJ8/view?usp=sharing)

@@ -31,7 +31,17 @@ sim_harvard_top:
 		tb/tb_harvard_top.v
 	$(VVP) sim/harvard_top.vvp
 
-sim_all: sim_fetch sim_dmem sim_addr_rw sim_harvard_top
+# Phase II (Member 2): L2 multi-cycle latency + data-hierarchy latency table
+sim_l2_latency:
+	$(IVERILOG) $(CFLAGS) -o sim/l2_latency.vvp \
+		rtl/harvard/address_decoder.v \
+		rtl/harvard/rw_control.v \
+		rtl/harvard/data_memory.v \
+		rtl/harvard/shared_l2_memory.v \
+		tb/tb_l2_latency.v
+	$(VVP) sim/l2_latency.vvp
+
+sim_all: sim_fetch sim_dmem sim_addr_rw sim_harvard_top sim_l2_latency
 
 clean:
 	rm -f sim/*.vvp sim/*.vcd

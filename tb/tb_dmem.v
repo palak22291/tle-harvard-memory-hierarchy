@@ -89,8 +89,9 @@ module tb_dmem;
     integer cycle_count = 0;
     always @(posedge clk) cycle_count = cycle_count + 1;
 
-    reg [31:0] held, r_addr, r_data;
+    reg [31:0] held, r_addr, r_data, exp_be;
     reg [3:0]  r_be;
+    integer    b;
     integer    seed;
 
     initial begin
@@ -105,6 +106,7 @@ module tb_dmem;
         $display("T1  reset and idle: d_ready stays low");
         @(posedge clk); #1;
         check("d_ready in reset", d_ready, 0);
+        check("d_rdata initial value", d_rdata, 32'h0);
         @(negedge clk); rst_n = 1;
         @(posedge clk); #1;
         check("d_ready idle", d_ready, 0);
@@ -208,6 +210,74 @@ module tb_dmem;
             if ($urandom % 2) do_write(r_addr, r_data, r_be);
             else              do_read (r_addr);
         end
+
+        // T14: every d_be pattern, checked against an independent expectation
+        $display("T14 all 16 d_be patterns on word 0x100");
+        for (b = 0; b < 16; b = b + 1) begin
+            do_write(32'h0000_0100, 32'h1122_3344, 4'b1111);
+            do_write(32'h0000_0100, 32'hAABB_CCDD, b[3:0]);
+            exp_be = { b[3] ? 8'hAA : 8'h11,
+                       b[2] ? 8'hBB : 8'h22,
+                       b[1] ? 8'hCC : 8'h33,
+                       b[0] ? 8'hDD : 8'h44 };
+            do_read (32'h0000_0100);
+            check("d_be pattern result", d_rdata, exp_be);
+        end
+
+        // T15: d_addr[1:0] and d_addr[31:10] are ignored by the DMEM itself
+        //      (the address decoder is responsible for rejecting them)
+        $display("T15 address boundaries and aliasing above d_addr[9:2]");
+        do_write(32'h0000_03FF, 32'h3FF0_3FF0, 4'b1111);  // top byte -> word 255
+        do_read (32'h0000_03FC);
+        check("0x3FF -> word 255", d_rdata, 32'h3FF0_3FF0);
+        do_write(32'h0000_0400, 32'h0400_0400, 4'b1111);  // aliases word 0
+        do_read (32'h0000_0000);
+        check("0x400 aliases word 0", d_rdata, 32'h0400_0400);
+        do_write(32'h0000_07FC, 32'h07FC_07FC, 4'b1111);  // aliases word 255
+        do_read (32'h0000_03FC);
+        check("0x7FC aliases word 255", d_rdata, 32'h07FC_07FC);
+        do_write(32'h0000_0800, 32'h0800_0800, 4'b1111);
+        do_read (32'h0000_0000);
+        check("0x800 aliases word 0", d_rdata, 32'h0800_0800);
+        do_write(32'h0000_0FFC, 32'h0FFC_0FFC, 4'b1111);
+        do_read (32'h0000_03FC);
+        check("0xFFC aliases word 255", d_rdata, 32'h0FFC_0FFC);
+        do_write(32'h0000_1000, 32'h1000_1000, 4'b1111);
+        do_read (32'h0000_0000);
+        check("0x1000 aliases word 0", d_rdata, 32'h1000_1000);
+        do_read (32'hFFFF_FFFC);
+        check("0xFFFFFFFC aliases word 255", d_rdata, 32'h0FFC_0FFC);
+
+        // T16: a read with dmem_en = 0 does not update d_rdata; d_ready is a 1-cycle pulse
+        $display("T16 read with dmem_en = 0 holds d_rdata, d_ready pulses once");
+        do_write(32'h0000_0040, 32'h4040_4040, 4'b1111);
+        do_read (32'h0000_0000);
+        held = d_rdata;
+        @(negedge clk);
+        dmem_en = 0; dmem_we = 0; d_be = 4'b0000; d_addr = 32'h0000_0040;
+        @(posedge clk); #1;
+        check("d_rdata held when disabled", d_rdata, held);
+        check("d_ready low when disabled", d_ready, 0);
+        @(posedge clk); #1;
+        check("d_rdata still held", d_rdata, held);
+        check("d_ready still low", d_ready, 0);
+        do_read (32'h0000_0040);
+
+        // T17: async reset mid-run clears d_ready only; storage is preserved
+        $display("T17 async reset mid-access: d_ready clears, RAM contents kept");
+        do_write(32'h0000_0080, 32'h5A5A_A5A5, 4'b1111);
+        do_read (32'h0000_0080);                          // d_ready = 1, en still 1
+        #2 rst_n = 0;                                     // between clock edges
+        #1 check("d_ready async clear", d_ready, 0);
+        @(posedge clk); #1;
+        check("d_ready held low in reset", d_ready, 0);
+        idle;
+        rst_n = 1;
+        @(posedge clk); #1;
+        check("d_ready idle after reset", d_ready, 0);
+        do_read (32'h0000_0080);
+        check("RAM kept across reset", d_rdata, 32'h5A5A_A5A5);
+        do_read (32'h0000_0040);
 
         idle;
         @(posedge clk); #1;
