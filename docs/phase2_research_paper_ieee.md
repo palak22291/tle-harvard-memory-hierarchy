@@ -1,12 +1,12 @@
 # Design, Verification, and Quantitative Evaluation of a 32-Bit Harvard Instruction and Data Memory Hierarchy in Verilog RTL
 
-**Authors:** Palak Gupta, Atanu Adhikari, Sambhav Kumar, and Member 4 *(Team TLE)*  
+**Authors:** Palak Gupta, Atanu Adhikari, Sambhav Kumar, and Prince Singh *(Team TLE)*  
 **Course:** Modern Computer Architecture — Research Paper Report  
 
 ---
 
 ## Abstract
-Memory subsystem contention remains a primary throughput bottleneck in pipelined and single-cycle reduced instruction set processors. In classical Von Neumann architectures, instructions and data share a unified address space and a single physical bus, inducing structural hazards whenever an instruction fetch (`IF`) coincides with a data memory load or store (`MEM`) transaction. This paper presents the Register-Transfer Level (RTL) design, cycle-accurate verification, and quantitative performance evaluation of a 32-bit Modified Harvard memory hierarchy implemented in Verilog-2012. The proposed architecture physically decouples the read-only Instruction Memory (`IMEM`) pathway from a two-tier Data Memory hierarchy comprising a 1 KB byte-addressable Local Data SRAM (`DMEM`) and a 2 KB Shared Lower-Level Memory (`L2`). A combinational bitmask Address Decoder and a deterministic 3-clock Read/Write Controller (`rw_control`) arbitrate data transactions and trap out-of-bounds memory faults via `invalid_addr_err`. Self-checking testbenches executed in Icarus Verilog across 1,635 directed and randomized assertions verify zero-defect functional operation. Quantitative benchmarking on a 16-instruction memory-intensive workload demonstrates that decoupling the instruction and data buses eliminates 36 structural hazard stall cycles compared to an equivalent Von Neumann unified-memory baseline, reducing effective Cycles Per Instruction (CPI) from 3.50 to 1.25 and achieving a $2.80\times$ instruction throughput speedup.
+Memory subsystem contention remains a primary throughput bottleneck in pipelined and single-cycle reduced instruction set processors. In classical Von Neumann architectures, instructions and data share a unified address space and a single physical bus, inducing structural hazards whenever an instruction fetch (`IF`) coincides with a data memory load or store (`MEM`) transaction. This paper presents the Register-Transfer Level (RTL) design, cycle-accurate verification, and quantitative performance evaluation of a 32-bit Modified Harvard memory hierarchy implemented in Verilog-2012. The proposed architecture physically decouples the read-only Instruction Memory (`IMEM`) pathway from a two-tier Data Memory hierarchy comprising a 1 KB byte-addressable Local Data SRAM (`DMEM`) and a 2 KB Shared Lower-Level Memory (`L2`). A combinational bitmask Address Decoder and a three-state (`IDLE`/`ACTIVE`/`WAIT`) Read/Write Controller (`rw_control`) arbitrate data transactions and trap out-of-bounds memory faults via `invalid_addr_err`. A parameterized wait-state model makes the L2 tier measurably slower than `DMEM`, and a single-port Von Neumann baseline (`unified_memory`, `bus_arbiter`) is built for comparison. Seven Icarus Verilog testbenches (2,213 self-checking assertions plus 12 fetch state vectors) pass with zero errors. The same CPU driver runs a 16-instruction memory-intensive benchmark on both organizations. Both produce identical final memory and accumulator contents. The Harvard hierarchy completes the benchmark in 74 clock cycles against 90 for the Von Neumann baseline (CPI 4.625 vs. 5.625, a 1.216× speedup), because it removes all 36 structural-hazard stall cycles. The speedup falls to 1.178× when four L2 wait states are added, since both organizations pay the slower L2 equally.
 
 **Index Terms—** Harvard Architecture, Von Neumann Bottleneck, Memory Hierarchy, Address Decoding, Structural Hazard, Cycles Per Instruction (CPI), Verilog RTL.
 
@@ -19,8 +19,8 @@ To overcome this limitation without duplicating high-capacity off-chip memory, c
 
 In this paper, we present a complete 32-bit Harvard instruction and data memory hierarchy in synthesizable Verilog RTL. The primary contributions of this work are as follows:
 1. **Decoupled Instruction Fetch Engine:** A 32-bit byte-addressed Program Counter (`program_counter.v`) with prioritized hazard stall and branch target multiplexing coupled to a synchronous $256 \times 32$-bit Instruction ROM (`instruction_memory.v`).
-2. **Partitioned Multi-Tier Data Hierarchy:** A combinational bitmask Address Decoder (`address_decoder.v`) and a 3-clock finite-state Read/Write Controller (`rw_control.v`) interfacing a 1 KB byte-addressable Local Data SRAM (`data_memory.v`) and a 2 KB Shared Lower-Level Memory (`shared_l2_memory.v`) with hardware fault trapping (`invalid_addr_err`).
-3. **Self-Checking Verification & Quantitative CPI Evaluation:** An automated verification suite totaling 1,635 assertions across four testbenches, paired with an analytical and cycle-accurate comparison against a Von Neumann unified-memory baseline.
+2. **Partitioned Multi-Tier Data Hierarchy:** A combinational bitmask Address Decoder (`address_decoder.v`) and a three-state (`IDLE`/`ACTIVE`/`WAIT`) Read/Write Controller (`rw_control.v`) interfacing a 1 KB byte-addressable Local Data SRAM (`data_memory.v`) and a 2 KB Shared Lower-Level Memory (`shared_l2_memory.v`) with hardware fault trapping (`invalid_addr_err`).
+3. **Self-Checking Verification & Measured CPI Evaluation:** Seven testbenches with 2,213 self-checking assertions, an L2 multi-cycle latency model, a single-port Von Neumann baseline, and a cycle-accurate comparison in which the same CPU driver runs the same program on both organizations.
 
 ---
 
@@ -50,7 +50,7 @@ The references above explain the bottleneck analytically [1], [3], [8] or descri
 
 ---
 
-## III. Proposed Architecture and Analytical Model
+## III. Proposed Architecture
 
 ### A. System Organization
 The proposed 32-bit Harvard hierarchy (`harvard_top.v`) separates memory traffic into two orthogonal domains:
@@ -60,7 +60,7 @@ The proposed 32-bit Harvard hierarchy (`harvard_top.v`) separates memory traffic
 3. **Bitmask Address Decoder (`address_decoder.v`) and R/W Controller (`rw_control.v`):** Incoming data requests (`d_addr`, `d_wdata`, `d_be[3:0]`, `req`, `we`) are decoded combinationally using aligned bitmasks:
    $$\text{dmem\_sel} = (\text{d\_addr} \;\&\; \text{0xFFFF\_FC00}) == \text{0x0000\_0000}$$
    $$\text{l2\_sel} = (\text{d\_addr} \;\&\; \text{0xFFFF\_F800}) == \text{0x0000\_0800}$$
-   Aligning the 2 KB `L2` region (`0x800` bytes) to base address `0x0000_0800` ensures exact power-of-two mask matching across `0x0000_0800–0x0000_0FFF`, while leaving `0x0000_0400–0x0000_07FF` and addresses $\ge \text{0x0000\_1000}$ as unmapped trap regions that assert `invalid_addr_err`. Instruction fetches (`IF`) and data memory transactions (`MEM`) occur across independent pathways, so an instruction fetch and a data access can proceed in the same clock cycles. Each memory array provides a 1-clock synchronous read, while a complete handshake transaction through `rw_control` completes in 3 clocks.
+   Aligning the 2 KB `L2` region (`0x800` bytes) to base address `0x0000_0800` ensures exact power-of-two mask matching across `0x0000_0800–0x0000_0FFF`, while leaving `0x0000_0400–0x0000_07FF` and addresses $\ge \text{0x0000\_1000}$ as unmapped trap regions that assert `invalid_addr_err`. Instruction fetches (`IF`) and data memory transactions (`MEM`) occur across independent pathways, so an instruction fetch and a data access can proceed in the same clock cycles. Each memory array provides a 1-clock synchronous read, while a complete `DMEM` transaction through `rw_control` takes 4 clocks from `req` to `d_ready` (measured in Section IV-B).
 4. **Local Data Memory (`data_memory.v`) and Shared L2 (`shared_l2_memory.v`):** `DMEM` provides $256 \times 32$-bit synchronous storage supporting byte, half-word, and word writes via active-high byte-lane enables `d_be[3:0]`. `Shared L2` provides $512 \times 32$-bit (2 KB) secondary storage indexed via `d_addr[10:2]`.
 
 ### B. Memory Map Specification
@@ -88,6 +88,7 @@ All modules were compiled and simulated using Icarus Verilog (`iverilog -g2012`)
 | `tb_addr_rw.v` | `address_decoder`, `rw_control`, `data_memory`, `shared_l2_memory` | `DMEM` full/byte R/W, `L2` R/W at `0x0800` & `0x0FFC`, unmapped fault at `0x0500` (`invalid_addr_err`), alternating `DMEM`/`L2` multiplexing | 26 checks | 0 | **PASSED** |
 | `tb_harvard_top.v` | `harvard_top` (Full System Integration) | `IMEM` sequential/branch fetches, `DMEM` (`0x000`, `0x3FC`), `L2` (`0x800`, `0xFFC`), byte-lane, and fault (`0x500`) transactions | 25 checks | 0 | **PASSED** |
 | `tb_von_neumann.v` | `bus_arbiter`, `unified_memory` (Von Neumann baseline) | Fetch from code segment `0x1000`, data-window R/W, code not overwritten by `STORE 0x000`, data-over-fetch priority with `if_stall`, L2-window wait states, byte lanes, 200 random overlapping fetch/data pairs vs. reference model, per-cycle bus monitor | 319 checks | 0 | **PASSED** |
+| `tb_architecture_comparison.v` | driver on both tops, `L2_LATENCY` 0/2/4 | Retirement, mix, accumulator and 768 memory words vs. model and across systems, overlap/stall present | 57 checks | 0 | **PASSED** |
 | `tb_l2_latency.v` | `shared_l2_memory` (`L2_LATENCY` = 0/2/4), full data path | Ready timing per latency, data hidden until ready, byte lanes, request-while-busy ignored, back-to-back access, end-to-end `req`→`d_ready` latency | 74 checks | 0 | **PASSED** |
 
 ### B. Results and Discussion, Part 1: Latency and Memory Hierarchy Behavior
@@ -106,24 +107,46 @@ Three observations follow from the measurements:
 2. **The hierarchy is visible in timing.** `DMEM` latency stays at 4 clocks for every L2 setting, while each extra L2 wait state adds exactly one clock to every L2 transaction. Data placed in the local 1 KB `DMEM` is therefore always at least as fast as data in the 2 KB L2, which is the reason for keeping frequently used operands in the lower address window.
 3. **Read data is hidden until it is valid.** With `L2_LATENCY > 0`, `l2_rdata` keeps its previous value until `l2_ready` rises, so the controller cannot capture a stale word early. This is the same failure that caused the Phase I stale-read bug, now closed off at the memory as well as in `rw_control`.
 
-### C. Quantitative Comparison: Harvard vs. Von Neumann Architecture
-To evaluate architectural performance under realistic load/store pressure, both the proposed Harvard organization and an equivalent single-bus Von Neumann baseline were evaluated against the 16-instruction benchmark suite (`programs/benchmark_suite.hex` and `scripts/analyze_cpi.py`), comprising 8 `DMEM` operations (50%), 4 `Shared L2` operations (25%), and 4 `ALU/NOP` operations (25%).
+### C. Results and Discussion, Part 2: CPI, Throughput and Waveform Comparison
+**Method.** Both organizations run `programs/benchmark_suite.hex` (16 instructions: 6 `LOAD`, 6 `STORE`, 3 `ALU`, 1 `NOP`) on the same `simple_cpu_driver.v`, a two-stage accumulator machine with a one-entry instruction buffer that starts fetching instruction *N+1* as soon as *N* enters execute. In `harvard_cpu_top.v` the fetch port goes straight to `instruction_memory.v` and the data port through `rw_control.v`; in `von_neumann_top.v` both ports share `bus_arbiter.v` and the single-port `unified_memory.v` (code at `0x1000`). Both use single-clock arrays plus `L2_LATENCY` wait states on `0x800`–`0xFFF`. `tb_architecture_comparison.v` first checks that both systems retire all 16 instructions with identical accumulator (`0xCAFE_0000`) and identical contents in all 768 `DMEM`/L2 words, matching a reference model; only then are cycles compared (Table IV).
 
-| Performance Metric | Harvard Split Memory Hierarchy | Von Neumann Unified-Bus Baseline | Analytical Improvement |
-| :--- | :--- | :--- | :--- |
-| **Total Instructions Executed ($N_{\text{instr}}$)** | 16 instructions | 16 instructions | Identical workload |
-| **Instruction Fetch (`IF`) Bus Latency** | 1 clock cycle (parallel with `MEM`) | 1 clock cycle (serialized with `MEM`) | Concurrent `IF` + `MEM` |
-| **Data Transaction Handshake (`rw_control`)** | 3 clocks (overlapped with `IF`) | 3 clocks (stalls `IF` bus) | Eliminates bus contention |
-| **Structural Hazard Stall Cycles** | **0 cycles** | **36 cycles** ($12 \text{ mem ops} \times 3 \text{ clks}$) | **100% hazard elimination** |
-| **Secondary L2 Wait Penalty Cycles** | 4 cycles ($4 \text{ L2 ops} \times 1 \text{ wait clk}$) | 4 cycles ($4 \text{ L2 ops} \times 1 \text{ wait clk}$) | Equal backing-store latency |
-| **Total Execution Time (Clock Cycles)** | **20 clock cycles** | **56 clock cycles** | **36 fewer clock cycles** |
-| **Effective Cycles Per Instruction (CPI)** | **1.25 CPI** (1.00 on L1-only hits) | **3.50 CPI** | **$2.80\times$ throughput speedup** |
+| `L2_LATENCY` | Architecture | Cycles | CPI | IPC | Data-access cycles | Execute starved | Structural stalls | Speedup |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 0 | Harvard | 74 | 4.625 | 0.216 | 60 | 10 | 0 | **1.216×** |
+| 0 | Von Neumann | 90 | 5.625 | 0.178 | 36 | 50 | 36 | — |
+| 2 | Harvard | 82 | 5.125 | 0.195 | 68 | 10 | 0 | **1.195×** |
+| 2 | Von Neumann | 98 | 6.125 | 0.163 | 44 | 50 | 44 | — |
+| 4 | Harvard | 90 | 5.625 | 0.178 | 76 | 10 | 0 | **1.178×** |
+| 4 | Von Neumann | 106 | 6.625 | 0.151 | 52 | 50 | 52 | — |
+
+Table V: first 16 clocks at `L2_LATENCY = 0` (from `sim/arch_comparison.vcd` via `scripts/vcd_timeline.py`).
+
+| Cycle | Harvard IF | Harvard MEM | VN IF | VN MEM | VN if_stall |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | IF | · | IF | · | · |
+| 2 | IF | · | IF | · | · |
+| 3 | · | · | IF | · | · |
+| 4 | IF | MEM | · | · | · |
+| 5 | IF | MEM | IF | MEM | STALL |
+| 6 | · | MEM | IF | MEM | STALL |
+| 7 | · | MEM | IF | MEM | STALL |
+| 8 | · | MEM | IF | · | · |
+| 9 | IF | MEM | IF | · | · |
+| 10 | IF | MEM | · | · | · |
+| 11 | · | MEM | IF | MEM | STALL |
+| 12 | · | MEM | IF | MEM | STALL |
+| 13 | · | MEM | IF | MEM | STALL |
+| 14 | IF | MEM | IF | · | · |
+| 15 | IF | MEM | IF | · | · |
+| 16 | · | MEM | · | · | · |
+
+**Discussion.** (1) Harvard fetches during data accesses (cycles 4–5, 9–10), so execute starves only 10 cycles; Von Neumann blocks the fetch for every data transfer (cycles 5–7, 11–13), giving 36 structural stalls and 74 vs. 90 cycles (1.216×). (2) Each Harvard data access costs 5 driver cycles through `rw_control` versus 3 on the baseline, so the gain comes entirely from overlap and is conservative. (3) Each L2 wait state adds 4 cycles to both systems, so the gap stays 16 cycles and the speedup falls to 1.178× at `L2_LATENCY = 4`. (4) The analytical model in `scripts/analyze_cpi.py` predicted 2.80× by assuming one-clock Harvard instructions; the RTL measurements in Table IV are the reported results.
 
 ### D. Discussion of Timing and Architectural Trade-offs
 Waveform inspection of `sim/harvard_top.vcd` confirms three key architectural behaviors:
-1. **Elimination of Structural Stalls:** During `T3` (`DMEM` write/read at `0x0000_0000`) and `T4` (`L2` write/read at `0x0000_0800`), `pc_out` continues incrementing by 4 bytes every clock cycle and `i_rdata` delivers valid instructions (`i_ready = 1`) without asserting `stall`.
+1. **Where fetch and data overlap:** Phase I `harvard_top.v` holds its PC with `stall = req & ~d_ready`, so its PC does not advance during data accesses. The overlap appears with the Phase II driver in `harvard_cpu_top.v` (Table V).
 2. **Hardware Memory Protection:** When the controller issues an access to unmapped gap address `0x0000_0500` (`T5`), neither `dmem_en` nor `l2_en` asserts, preventing accidental data corruption and immediately raising `invalid_addr_err`.
-3. **Area vs. Bandwidth Trade-off:** While the Harvard organization doubles the primary bus routing width (requiring two 32-bit address buses and two 32-bit read data paths), the $2.80\times$ throughput gain on memory-intensive kernels justifies the modest wire-routing overhead in embedded and pipelined RISC cores.
+3. **Area vs. Bandwidth Trade-off:** While the Harvard organization doubles the primary bus routing width (requiring two 32-bit address buses and two 32-bit read data paths), the measured 1.18–1.22× gain on this kernel justifies the modest wire-routing overhead in embedded and pipelined RISC cores.
 
 ---
 
@@ -131,17 +154,17 @@ Waveform inspection of `sim/harvard_top.vcd` confirms three key architectural be
 
 | Team Member | Assigned Modules & Verification Artefacts | Research Paper & Documentation Contributions |
 | :--- | :--- | :--- |
-| **Palak Gupta (Member 1)** | `rtl/common/defines.vh`, `rtl/common/program_counter.v`, `rtl/harvard/instruction_memory.v`, `tb/tb_phase1_harvard.v`, `programs/test_program.hex`, `programs/benchmark_suite.hex`, `scripts/analyze_cpi.py` | Authored Section III (*Proposed Architecture & Analytical Model*), Section VI (*Conclusion & Future Work*), system block diagram, and formatted the full IEEE Research Paper. |
+| **Palak Gupta (Member 1)** | `rtl/common/defines.vh`, `rtl/common/program_counter.v`, `rtl/harvard/instruction_memory.v`, `tb/tb_phase1_harvard.v`, `programs/test_program.hex`, `programs/benchmark_suite.hex`, `scripts/analyze_cpi.py` (analytical estimate) | Authored Section III (*Proposed Architecture*), Section VI (*Conclusion & Future Work*), system block diagram, and formatted the full IEEE Research Paper (Markdown, LaTeX, PDF). |
 | **Atanu Adhikari (Member 2)** | `rtl/harvard/data_memory.v`, `tb/tb_dmem.v` (1,712 self-checking assertions); Phase II: multi-cycle `L2_LATENCY` model in `rtl/harvard/shared_l2_memory.v`, `tb/tb_l2_latency.v` (74 assertions, latency table) | Authored the *Abstract*, *Section I (Introduction)*, and Section IV-B (*Results and Discussion, Part 1: Latency and Memory Hierarchy Behavior*). |
 | **Sambhav Kumar (Member 3)** | `rtl/harvard/address_decoder.v`, `rtl/harvard/rw_control.v`, `rtl/harvard/shared_l2_memory.v`, `tb/tb_addr_rw.v` (26 assertions); Phase II: Von Neumann baseline `rtl/von_neumann/unified_memory.v` and `rtl/von_neumann/bus_arbiter.v`, `tb/tb_von_neumann.v` (319 assertions) | Authored *Section II (Related Work & Theoretical Background)*, expanded it in Phase II (Sections II-C to II-F), and formatted the IEEE references. |
-| **Member 4** | `rtl/harvard/harvard_top.v`, `tb/tb_harvard_top.v` (25 self-checking integration assertions) | Authored *Section IV (Experimental Evaluation, Results & Discussion)* and compiled *Section V (Individual Contributions)*. |
+| **Prince Singh (Member 4)** | `rtl/harvard/harvard_top.v`, `tb/tb_harvard_top.v` (25 assertions); Phase II: `rtl/common/simple_cpu_driver.v`, `rtl/harvard/harvard_cpu_top.v`, `rtl/von_neumann/von_neumann_top.v`, `tb/tb_architecture_comparison.v` (57 assertions), `scripts/vcd_timeline.py` | Authored Section IV-C (*Results Part 2*), compiled Section V, and updated the Abstract and Conclusion to the measured results. |
 
 ---
 
 ## VI. Conclusion and Future Work
-This work presented the design, implementation, and self-checking verification of a 32-bit Harvard instruction and data memory hierarchy in Verilog RTL. By physically separating the synchronous Instruction ROM (`IMEM`) pathway from the byte-addressable Local Data SRAM (`DMEM`) and 2 KB-aligned Shared L2 Memory (`L2`), the architecture eliminates single-bus structural hazards during concurrent instruction fetches and data reads/writes. Power-of-two bitmask decoding in `address_decoder.v` and deterministic handshaking in `rw_control.v` ensure conflict-free routing and immediate hardware fault detection on unmapped addresses (`invalid_addr_err`). Across 1,635 automated testbench assertions, the RTL achieved 100% verification pass rates, and benchmark analysis demonstrated a $2.80\times$ throughput speedup (1.25 CPI vs. 3.50 CPI) over an equivalent Von Neumann unified-memory organization.
+This work presented the design, implementation and self-checking verification of a 32-bit Harvard instruction and data memory hierarchy in Verilog RTL, together with a Von Neumann baseline built from the same memory technology. Separating the instruction ROM (`IMEM`) from the data hierarchy, a 1 KB local `DMEM` and a 2 KB shared L2, lets an instruction fetch run in the same clock cycles as a data load or store. Power-of-two bitmask decoding in `address_decoder.v` routes each data access and flags unmapped addresses (`invalid_addr_err`). All seven testbenches pass, 2,213 self-checking assertions and 12 fetch state vectors, with zero errors. With the same CPU driver and the same 16-instruction benchmark, the Harvard hierarchy finished in 74 cycles against 90 for the Von Neumann baseline (CPI 4.625 vs. 5.625, a 1.216× speedup), and it removed all 36 structural-hazard stall cycles. The gain held, at 1.178×, with four L2 wait states, and it was obtained even though the Harvard data path pays an extra decode stage in `rw_control`. The analytical estimate of 2.80× made before the RTL existed was not confirmed: in the real design each fetch and data transfer takes several clocks, and only part of the fetch time can be hidden.
 
-Future extensions to this work include integrating a set-associative L1 Instruction and Data Cache controller with write-back replacement policies, adding burst-transfer bridging between L1 `DMEM` and `Shared L2`, and synthesizing the hierarchy onto an Artix-7 FPGA target to characterize post-place-and-route maximum operating frequency ($F_{\max}$) and block RAM (BRAM) utilization.
+Future work includes a pipelined driver that issues one fetch per clock to hide more fetch time, a set-associative L1 cache with write-back between `DMEM` and L2, and synthesis on an Artix-7 FPGA to measure maximum clock frequency ($F_{\max}$) and block RAM use.
 
 ---
 

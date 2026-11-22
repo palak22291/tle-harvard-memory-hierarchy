@@ -60,28 +60,33 @@ tle-harvard-memory-hierarchy/
 │   ├── test_program.hex                   # 256-word padded hex payload for Phase I IMEM fetch
 │   └── benchmark_suite.hex                # 256-word padded L1/L2 workload for Phase II evaluation
 ├── scripts/
-│   └── analyze_cpi.py                     # Quantitative Harvard vs. Von Neumann CPI & stall analyzer
+│   ├── analyze_cpi.py                     # Analytical (pre-RTL) CPI estimate
+│   └── vcd_timeline.py                    # Phase II: cycle-by-cycle IF/MEM timeline from the comparison VCD
 ├── rtl/
 │   ├── common/
 │   │   ├── defines.vh                     # Global bus widths, memory depths, and address masks
-│   │   └── program_counter.v              # 32-bit Program Counter with stall & branch support
+│   │   ├── program_counter.v              # 32-bit Program Counter with stall & branch support
+│   │   └── simple_cpu_driver.v            # Phase II: accumulator CPU driver, LOAD/STORE/ALU/NOP (Member 4)
 │   ├── harvard/
 │   │   ├── instruction_memory.v           # 256x32-bit synchronous Instruction ROM (Member 1)
 │   │   ├── data_memory.v                  # 256x32-bit synchronous Data RAM with byte-enables (Member 2)
 │   │   ├── shared_l2_memory.v             # 512x32-bit Shared L2, L2_LATENCY wait states (Member 3 / Member 2)
 │   │   ├── address_decoder.v              # Combinational bitmask address decoding (Member 3)
-│   │   ├── rw_control.v                   # 3-clock R/W transaction & response controller (Member 3)
-│   │   └── harvard_top.v                  # Top-level Harvard hierarchy integration (Member 4)
+│   │   ├── rw_control.v                   # IDLE/ACTIVE/WAIT R/W transaction controller (Member 3)
+│   │   ├── harvard_top.v                  # Top-level Harvard hierarchy integration (Member 4)
+│   │   └── harvard_cpu_top.v              # Phase II: CPU driver + Harvard hierarchy (Member 4)
 │   └── von_neumann/                       # Phase II Von Neumann baseline (Member 3)
 │       ├── unified_memory.v               # 2048x32-bit single-port memory, code segment at 0x1000
-│       └── bus_arbiter.v                  # Data-priority arbiter, if_stall = structural-hazard flag
+│       ├── bus_arbiter.v                  # Data-priority arbiter, if_stall = structural-hazard flag
+│       └── von_neumann_top.v              # Phase II: CPU driver + arbiter + unified memory (Member 4)
 ├── tb/
 │   ├── tb_phase1_harvard.v                # Self-checking PC + IMEM fetch, stall & branch testbench
 │   ├── tb_dmem.v                          # Self-checking Data Memory unit testbench (1712 checks)
 │   ├── tb_addr_rw.v                       # Self-checking Decoder + R/W Control testbench (26 checks)
 │   ├── tb_harvard_top.v                   # Self-checking Top-Level Harvard integration testbench (25 checks)
 │   ├── tb_l2_latency.v                    # Phase II: L2 multi-cycle latency + data-path latency table (74 checks)
-│   └── tb_von_neumann.v                   # Phase II: Von Neumann arbiter + unified memory (319 checks)
+│   ├── tb_von_neumann.v                   # Phase II: Von Neumann arbiter + unified memory (319 checks)
+│   └── tb_architecture_comparison.v       # Phase II: Harvard vs. Von Neumann, same driver (57 checks)
 └── docs/
     ├── phase2_research_paper_ieee.md      # Complete IEEE Research Paper (Markdown Master)
     └── phase2_research_paper_ieee.tex     # Complete IEEEtran Conference Research Paper (LaTeX)
@@ -107,9 +112,26 @@ make sim_l2_latency
 # Phase II: Von Neumann baseline (bus arbiter + unified memory)
 make sim_von_neumann
 
-# Run the Phase II Harvard vs. Von Neumann CPI & Stall Quantitative Analyzer
+# Phase II: same CPU driver on Harvard vs. Von Neumann (prints the CPI table,
+# writes sim/arch_comparison.csv and sim/arch_comparison.vcd)
+make sim_arch_compare
+python3 scripts/vcd_timeline.py --cycles 24
+
+# Analytical (pre-RTL) CPI estimate - the measured results come from sim_arch_compare
 python3 scripts/analyze_cpi.py
 ```
+
+### Phase II measured results (`make sim_arch_compare`)
+
+Same CPU driver, same 16-instruction program (`programs/benchmark_suite.hex`), same memory technology. Both systems end with identical memory and accumulator contents.
+
+| L2 wait states | Harvard cycles (CPI) | Von Neumann cycles (CPI) | VN structural stalls | Speedup |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | 74 (4.625) | 90 (5.625) | 36 | 1.216x |
+| 2 | 82 (5.125) | 98 (6.125) | 44 | 1.195x |
+| 4 | 90 (5.625) | 106 (6.625) | 52 | 1.178x |
+
+All seven testbenches pass: 2,213 self-checking assertions plus 12 fetch state vectors, 0 errors.
 
 ---
 
@@ -119,10 +141,10 @@ Every member of **Team TLE** owns dedicated RTL modules, self-checking verificat
 
 | Team Member | Role & Subsystem | Phase I Contributions (RTL, Verification & Report) | Phase II Contributions (Benchmarking, Comparison & Research Paper) |
 | :--- | :--- | :--- | :--- |
-| **Palak Gupta** *(Member 1)* | **Instruction Path, Memory Map & CPI Benchmarking** | • Initialized repository structure, `Makefile`, and global architecture macros (`rtl/common/defines.vh`)<br>• Designed 32-bit byte-aligned Program Counter (`rtl/common/program_counter.v`) with synchronous `stall` priority and `branch_en` control<br>• Implemented $256 \times 32$-bit synchronous Instruction ROM (`rtl/harvard/instruction_memory.v`) and self-checking fetch testbench (`tb/tb_phase1_harvard.v`)<br>• Authored Section III (*Proposed Architecture*) and system block diagram | • Designed the 16-instruction L1/L2 memory hierarchy benchmark suite (`programs/benchmark_suite.hex`)<br>• Developed the quantitative CPI and structural-hazard stall analyzer (`scripts/analyze_cpi.py`)<br>• Restructured the project report into full **IEEE Conference Research Paper** format (`docs/phase2_research_paper_ieee.tex` / `.md`) and authored Section VI (*Conclusion & Future Work*) |
+| **Palak Gupta** *(Member 1)* | **Instruction Path, Memory Map & CPI Benchmarking** | • Initialized repository structure, `Makefile`, and global architecture macros (`rtl/common/defines.vh`)<br>• Designed 32-bit byte-aligned Program Counter (`rtl/common/program_counter.v`) with synchronous `stall` priority and `branch_en` control<br>• Implemented $256 \times 32$-bit synchronous Instruction ROM (`rtl/harvard/instruction_memory.v`) and self-checking fetch testbench (`tb/tb_phase1_harvard.v`)<br>• Authored Section III (*Proposed Architecture*) and system block diagram | • Designed the 16-instruction L1/L2 memory hierarchy benchmark suite (`programs/benchmark_suite.hex`)<br>• Developed the analytical CPI estimate (`scripts/analyze_cpi.py`)<br>• Restructured the project report into full **IEEE Conference Research Paper** format (`docs/phase2_research_paper_ieee.md` / `.tex` / `.pdf`) and authored Section VI (*Conclusion & Future Work*) |
 | **Atanu Adhikari** *(Member 2)* | **Data Memory Subsystem & L2 Latency** | • Designed $256 \times 32$-bit synchronous Local Data Memory (`rtl/harvard/data_memory.v`) with 4-bit byte-lane write strobes (`d_be[3:0]`) and 1-clock read latency<br>• Built self-checking unit testbench (`tb/tb_dmem.v`) passing 1,712 directed and randomized checks against a behavioral reference model<br>• Authored *Abstract* and *Section I (Introduction)* | • Added the multi-cycle latency model (`L2_LATENCY` wait states) to `rtl/harvard/shared_l2_memory.v`<br>• Built `tb/tb_l2_latency.v` (74 checks): L2 ready timing for latency 0/2/4 and end-to-end `DMEM` vs. L2 latency through `rw_control`<br>• Wrote Section IV-B (*Results & Discussion Part 1: Latency & Memory Hierarchy Behavior*) |
-| **Sambhav Kumar** *(Member 3)* | **Address Decoding, R/W Control & Von Neumann Baseline** | • Implemented combinational bitmask Address Decoder (`rtl/harvard/address_decoder.v`) for `DMEM` (`0x0000_0000–0x0000_03FF`), 2 KB-aligned `L2` (`0x0000_0800–0x0000_0FFF`), and unmapped fault detection (`invalid_addr_err`)<br>• Designed the 3-clock finite-state Read/Write Controller (`rtl/harvard/rw_control.v`) and `tb/tb_addr_rw.v` (26 checks, 0 errors)<br>• Authored *Section II (Literature Review)* | • Built the Von Neumann baseline: single-port `rtl/von_neumann/unified_memory.v` (code segment at `0x1000`) and data-priority `rtl/von_neumann/bus_arbiter.v` with the `if_stall` structural-hazard flag<br>• Built `tb/tb_von_neumann.v` (319 checks, including 200 random overlapping fetch/data pairs vs. a reference model)<br>• Expanded *Section II* (II-C to II-F) and formatted the IEEE references |
-| **Member 4** | **Top-Level Integration & Comparative Verification** | • Integrated all instruction and data subsystems inside `rtl/harvard/harvard_top.v`<br>• Built the top-level self-checking verification suite (`tb/tb_harvard_top.v`, 25 checks, 0 errors) proving concurrent `IMEM` fetch and `DMEM`/`L2` data access<br>• Compiled *Individual Contributions* and Phase I deliverables | • Conducted end-to-end cycle-accurate waveform comparisons between Harvard and shared-memory organizations<br>• Co-authored *Section IV (Results and Discussion)* tables and synthesized comparative performance metrics |
+| **Sambhav Kumar** *(Member 3)* | **Address Decoding, R/W Control & Von Neumann Baseline** | • Implemented combinational bitmask Address Decoder (`rtl/harvard/address_decoder.v`) for `DMEM` (`0x0000_0000–0x0000_03FF`), 2 KB-aligned `L2` (`0x0000_0800–0x0000_0FFF`), and unmapped fault detection (`invalid_addr_err`)<br>• Designed the IDLE/ACTIVE/WAIT Read/Write Controller (`rtl/harvard/rw_control.v`) and `tb/tb_addr_rw.v` (26 checks, 0 errors)<br>• Authored *Section II (Literature Review)* | • Built the Von Neumann baseline: single-port `rtl/von_neumann/unified_memory.v` (code segment at `0x1000`) and data-priority `rtl/von_neumann/bus_arbiter.v` with the `if_stall` structural-hazard flag<br>• Built `tb/tb_von_neumann.v` (319 checks, including 200 random overlapping fetch/data pairs vs. a reference model)<br>• Expanded *Section II* (II-C to II-F) and formatted the IEEE references |
+| **Prince Singh** *(Member 4)* | **Top-Level Integration & Comparative Verification** | • Integrated all instruction and data subsystems inside `rtl/harvard/harvard_top.v`<br>• Built the top-level self-checking verification suite (`tb/tb_harvard_top.v`, 25 checks, 0 errors) proving concurrent `IMEM` fetch and `DMEM`/`L2` data access<br>• Compiled *Individual Contributions* and Phase I deliverables | • Built the CPU driver `rtl/common/simple_cpu_driver.v` and the two comparison systems `rtl/harvard/harvard_cpu_top.v` and `rtl/von_neumann/von_neumann_top.v`<br>• Built `tb/tb_architecture_comparison.v` (57 checks): same program on both systems, identical results, measured CPI table; `scripts/vcd_timeline.py` for the waveform table<br>• Wrote Section IV-C (*Results & Discussion Part 2: CPI, Throughput & Waveform Comparison*) and updated the Abstract, Conclusion, LaTeX and PDF to the measured results |
 
 ---
 

@@ -49,7 +49,23 @@ sim_von_neumann:
 		tb/tb_von_neumann.v
 	$(VVP) sim/von_neumann.vvp
 
-sim_all: sim_fetch sim_dmem sim_addr_rw sim_harvard_top sim_l2_latency sim_von_neumann
+# Phase II (Member 4): same CPU driver on Harvard vs. Von Neumann, side by side
+sim_arch_compare:
+	$(IVERILOG) $(CFLAGS) -o sim/arch_comparison.vvp \
+		rtl/common/simple_cpu_driver.v \
+		rtl/harvard/instruction_memory.v \
+		rtl/harvard/address_decoder.v \
+		rtl/harvard/rw_control.v \
+		rtl/harvard/data_memory.v \
+		rtl/harvard/shared_l2_memory.v \
+		rtl/harvard/harvard_cpu_top.v \
+		rtl/von_neumann/unified_memory.v \
+		rtl/von_neumann/bus_arbiter.v \
+		rtl/von_neumann/von_neumann_top.v \
+		tb/tb_architecture_comparison.v
+	$(VVP) sim/arch_comparison.vvp
+
+sim_all: sim_fetch sim_dmem sim_addr_rw sim_harvard_top sim_l2_latency sim_von_neumann sim_arch_compare
 
 clean:
 	rm -f sim/*.vvp sim/*.vcd
