@@ -184,4 +184,5 @@ Every member of **Team TLE** owns dedicated RTL modules, self-checking verificat
 * **IEEE Research Paper (Markdown):** [`docs/phase2_research_paper_ieee.md`](docs/phase2_research_paper_ieee.md)
 * **IEEE Research Paper (Overleaf LaTeX):** [`docs/phase2_research_paper_ieee.tex`](docs/phase2_research_paper_ieee.tex)
 * **IEEE Research Paper (PDF):** [`docs/phase2_research_paper_ieee.pdf`](docs/phase2_research_paper_ieee.pdf)
+* **Phase I Report (Phase I deadline version):** [`docs/Phase1_Report_TLE.pdf`](docs/Phase1_Report_TLE.pdf)
 * **Phase I Prototype Demo Video:** [Watch on Google Drive](https://drive.google.com/file/d/1j7-Sij1sefN8flYvEZj6Y0V-DFXxNOJ8/view?usp=sharing)
