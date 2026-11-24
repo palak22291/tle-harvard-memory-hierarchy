@@ -61,6 +61,7 @@ Fig.~\ref{fig:block} shows the system as built for the Phase~II comparison: the 
 \begin{table}[htbp]
 \caption{32-Bit Harvard Address Map and Decoding Configuration}
 \begin{center}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}llccc@{}}
 \toprule
 \textbf{Region} & \textbf{Address Range} & \textbf{Size} & \textbf{Mask} & \textbf{Select/Flag} \\
@@ -71,7 +72,8 @@ Fault Gap & \texttt{0x0000\_0400--0x0000\_07FF} & 1 KB & Default & \texttt{inval
 Shared \texttt{L2} & \texttt{0x0000\_0800--0x0000\_0FFF} & 2 KB & \texttt{0xFFFF\_F800} & \texttt{l2\_en} \\
 Upper Fault & \texttt{0x0000\_1000--0xFFFF\_FFFF} & --- & Default & \texttt{invalid\_addr\_err} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{center}
 \end{table}
 

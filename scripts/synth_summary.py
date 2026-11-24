@@ -52,6 +52,10 @@ def artix7(top):
 
 
 def main():
+    needed = [os.path.join(SYN, f"{top}_ecp5.json") for top, _ in TOPS]
+    if not all(os.path.exists(p) for p in needed):
+        sys.exit("synth/*_ecp5.json not found - run `make synth` first "
+                 "(it runs this script at the end)")
     bad = {top: constant_ports(top) for top, _ in TOPS}
     if any(bad.values()):
         for top, ports in bad.items():

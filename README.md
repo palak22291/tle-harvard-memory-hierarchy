@@ -109,7 +109,7 @@ tle-harvard-memory-hierarchy/
 **Prerequisites:** Install Icarus Verilog (`brew install icarus-verilog` on macOS) and Python 3.
 
 ```bash
-# Run all self-checking Verilog testbenches (Fetch, DMEM, Addr/RW, and Harvard Top)
+# Run all seven self-checking Verilog testbenches (Phase I and Phase II)
 make sim_all
 
 # Run individual subsystem testbenches

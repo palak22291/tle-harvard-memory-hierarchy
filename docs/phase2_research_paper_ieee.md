@@ -174,6 +174,8 @@ Three points follow from Table VI:
 
 ## V. Individual Contributions
 
+Table VII lists the RTL modules, testbenches and paper sections owned by each team member across Phase I and Phase II.
+
 | Team Member | Assigned Modules & Verification Artefacts | Research Paper & Documentation Contributions |
 | :--- | :--- | :--- |
 | **Palak Gupta (Member 1)** | `rtl/common/defines.vh`, `rtl/common/program_counter.v`, `rtl/harvard/instruction_memory.v`, `tb/tb_phase1_harvard.v`, `programs/test_program.hex`, `programs/benchmark_suite.hex`, `scripts/analyze_cpi.py` (analytical estimate) | Authored Section III (*Proposed Architecture*), Section VI (*Conclusion & Future Work*), system block diagram, and formatted the full IEEE Research Paper (Markdown, LaTeX, PDF). |
