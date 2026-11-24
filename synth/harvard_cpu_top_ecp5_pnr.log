@@ -1,0 +1,166 @@
+
+
+Info: Logic utilisation before packing:
+Info:     Total LUT4s:       581/24288     2%
+Info:         logic LUTs:    185/24288     0%
+Info:         carry LUTs:    396/24288     1%
+Info:           RAM LUTs:      0/ 3036     0%
+Info:          RAMW LUTs:      0/ 6072     0%
+
+Info:      Total DFFs:       538/24288     2%
+
+Info: Packing IOs..
+Info: Packing constants..
+Info: Packing carries...
+Info: Packing LUTs...
+Info: Packing LUT5-7s...
+Info: Packing FFs...
+Info:     420 FFs paired with LUTs.
+Info: Generating derived timing constraints...
+Info: Promoting globals...
+Info: Checksum: 0x4f603999
+
+Info: Device utilisation:
+Info: 	          TRELLIS_IO:       0/    197     0%
+Info: 	                DCCA:       0/     56     0%
+Info: 	              DP16KD:       2/     56     3%
+Info: 	          MULT18X18D:       0/     28     0%
+Info: 	              ALU54B:       0/     14     0%
+Info: 	             EHXPLLL:       0/      2     0%
+Info: 	             EXTREFB:       0/      1     0%
+Info: 	                DCUA:       0/      1     0%
+Info: 	           PCSCLKDIV:       0/      2     0%
+Info: 	             IOLOGIC:       0/    128     0%
+Info: 	            SIOLOGIC:       0/     69     0%
+Info: 	                 GSR:       0/      1     0%
+Info: 	               JTAGG:       0/      1     0%
+Info: 	                OSCG:       0/      1     0%
+Info: 	               SEDGA:       0/      1     0%
+Info: 	                 DTR:       0/      1     0%
+Info: 	             USRMCLK:       0/      1     0%
+Info: 	             CLKDIVF:       0/      4     0%
+Info: 	           ECLKSYNCB:       0/     10     0%
+Info: 	             DLLDELD:       0/      8     0%
+Info: 	              DDRDLL:       0/      4     0%
+Info: 	             DQSBUFM:       0/      8     0%
+Info: 	     TRELLIS_ECLKBUF:       0/      8     0%
+Info: 	        ECLKBRIDGECS:       0/      2     0%
+Info: 	                DCSC:       0/      2     0%
+Info: 	          TRELLIS_FF:     538/  24288     2%
+Info: 	        TRELLIS_COMB:     639/  24288     2%
+Info: 	        TRELLIS_RAMW:       0/   3036     0%
+
+Info: Placed 0 cells based on constraints.
+Info: Creating initial analytic placement for 311 cells, random placement wirelen = 23954.
+Info:     at initial placer iter 0, wirelen = 233
+Info:     at initial placer iter 1, wirelen = 236
+Info:     at initial placer iter 2, wirelen = 221
+Info:     at initial placer iter 3, wirelen = 238
+Info: Running main analytical placer, max placement attempts per cell = 173755.
+Info:     at iteration #1, type ALL: wirelen solved = 222, spread = 7225, legal = 8618; time = 0.02s
+Info:     at iteration #2, type ALL: wirelen solved = 250, spread = 4454, legal = 8348; time = 0.02s
+Info:     at iteration #3, type ALL: wirelen solved = 302, spread = 4189, legal = 7461; time = 0.01s
+Info:     at iteration #4, type ALL: wirelen solved = 387, spread = 3762, legal = 5722; time = 0.01s
+Info:     at iteration #5, type ALL: wirelen solved = 366, spread = 3982, legal = 6193; time = 0.01s
+Info:     at iteration #6, type ALL: wirelen solved = 488, spread = 3861, legal = 7542; time = 0.01s
+Info:     at iteration #7, type ALL: wirelen solved = 403, spread = 4008, legal = 5672; time = 0.01s
+Info:     at iteration #8, type ALL: wirelen solved = 468, spread = 3850, legal = 6083; time = 0.01s
+Info:     at iteration #9, type ALL: wirelen solved = 517, spread = 3849, legal = 6152; time = 0.01s
+Info:     at iteration #10, type ALL: wirelen solved = 564, spread = 3875, legal = 6155; time = 0.01s
+Info:     at iteration #11, type ALL: wirelen solved = 627, spread = 3969, legal = 5967; time = 0.01s
+Info:     at iteration #12, type ALL: wirelen solved = 629, spread = 4237, legal = 6886; time = 0.01s
+Info: HeAP Placer Time: 0.23s
+Info:   of which solving equations: 0.15s
+Info:   of which spreading cells: 0.01s
+Info:   of which strict legalisation: 0.03s
+
+Info: Running simulated annealing placer for refinement.
+Info:   at iteration #1: temp = 0.000000, timing cost = 192, wirelen = 5672
+Info:   at iteration #5: temp = 0.000000, timing cost = 39, wirelen = 3176
+Info:   at iteration #10: temp = 0.000000, timing cost = 35, wirelen = 2868
+Info:   at iteration #15: temp = 0.000000, timing cost = 107, wirelen = 2793
+Info:   at iteration #20: temp = 0.000000, timing cost = 116, wirelen = 2769
+Info:   at iteration #24: temp = 0.000000, timing cost = 99, wirelen = 2752 
+Info: SA placement time 0.68s
+
+Info: Max frequency for clock 'clk': 142.33 MHz (PASS at 100.00 MHz)
+
+Info: Slack histogram:
+Info:  legend: * represents 2 endpoint(s)
+Info:          + represents [1,2) endpoint(s)
+Info: [  2974,   3288) |***********+
+Info: [  3288,   3602) |**+
+Info: [  3602,   3916) |***+
+Info: [  3916,   4230) |****************************+
+Info: [  4230,   4544) |**************************+
+Info: [  4544,   4858) |****************+
+Info: [  4858,   5172) |************+
+Info: [  5172,   5486) |*********************+
+Info: [  5486,   5800) |***************+
+Info: [  5800,   6114) |************+
+Info: [  6114,   6428) |*****************************+
+Info: [  6428,   6742) |*****************************************+
+Info: [  6742,   7056) |*************************************+
+Info: [  7056,   7370) |************************************************************ 
+Info: [  7370,   7684) |*****************************************************+
+Info: [  7684,   7998) |*****************************************************+
+Info: [  7998,   8312) |******************+
+Info: [  8312,   8626) |**********+
+Info: [  8626,   8940) |*****+
+Info: [  8940,   9254) |*****+
+Info: Checksum: 0x5e8c28ac
+Info: Routing globals...
+
+Info: Routing..
+Info: Setting up routing queue.
+Info: Routing 2681 arcs.
+Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
+Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
+Info:       1000 |      455        544 |  455   544 |      2218|       0.24       0.24|
+Info:       2000 |      723       1229 |  268   685 |      1523|       0.18       0.42|
+Info:       3000 |      757       2038 |   34   809 |       564|       0.06       0.48|
+Info:       3566 |      759       2574 |    2   536 |         0|       0.07       0.55|
+Info: Routing complete.
+Info: Router1 time 0.55s
+Info: Checksum: 0xa2035a4b
+
+Info: Critical path report for clock 'clk' (posedge -> posedge):
+Info:       type curr  total name
+Info:   clk-to-q  5.83  5.83 Source u_l2.ram.0.0.DOB5
+Info:    routing  1.27  7.10 Net u_rwc.l2_rdata[23] (44,25) -> (46,26)
+Info:                          Sink u_rwc.d_rdata_TRELLIS_FF_Q_7_DI_LUT4_Z.D
+Info:                          Defined in:
+Info:                               rtl/harvard/rw_control.v:65.26-65.34
+Info:      logic  0.24  7.33 Source u_rwc.d_rdata_TRELLIS_FF_Q_7_DI_LUT4_Z.F
+Info:    routing  0.13  7.46 Net u_rwc.d_rdata_TRELLIS_FF_Q_7_DI (46,26) -> (46,26)
+Info:                          Sink u_rwc.d_rdata_TRELLIS_FF_Q_7.DI
+Info:      setup  0.00  7.46 Source u_rwc.d_rdata_TRELLIS_FF_Q_7.DI
+Info: 6.07 ns logic, 1.40 ns routing
+
+Info: Max frequency for clock 'clk': 134.01 MHz (PASS at 100.00 MHz)
+
+Info: Slack histogram:
+Info:  legend: * represents 2 endpoint(s)
+Info:          + represents [1,2) endpoint(s)
+Info: [  2538,   2864) |*****+
+Info: [  2864,   3190) |****+
+Info: [  3190,   3516) |*+
+Info: [  3516,   3842) |*+
+Info: [  3842,   4168) |*+
+Info: [  4168,   4494) |**+
+Info: [  4494,   4820) |***********+
+Info: [  4820,   5146) |*******************************************+
+Info: [  5146,   5472) |************************+
+Info: [  5472,   5798) |************+
+Info: [  5798,   6124) |********************+
+Info: [  6124,   6450) |*****************************+
+Info: [  6450,   6776) |**************************************+
+Info: [  6776,   7102) |************************************************************ 
+Info: [  7102,   7428) |********************************************************+
+Info: [  7428,   7754) |****************************+
+Info: [  7754,   8080) |****************+
+Info: [  8080,   8406) |********************+
+Info: [  8406,   8732) |******************+
+Info: [  8732,   9058) |******+
+
+Info: Program finished normally.

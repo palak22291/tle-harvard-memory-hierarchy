@@ -20,6 +20,9 @@ def parse_inline(text):
     text = re.sub(r'\$12 \\text\{ mem ops\} \\times 3 \\text\{ clks\}\$', '12 mem ops &times; 3 clks', text)
     text = re.sub(r'\$4 \\text\{ L2 ops\} \\times 1 \\text\{ wait clk\}\$', '4 L2 ops &times; 1 wait clk', text)
     
+    # Subscripted symbols such as $f_{\text{mem}}$
+    text = re.sub(r'\$([A-Za-z])_\{\\text\{([^}]+)\}\}\$', r'<i>\1</i><sub>\2</sub>', text)
+
     # Generic math fallbacks
     text = re.sub(r'\$([^\$]+)\$', r'<i>\1</i>', text)
     
@@ -147,6 +150,20 @@ def parse_markdown_to_html(md_text):
             i += 1
             continue
             
+        # Figure: ![Fig. N. Caption](figures/file.png), path relative to docs/
+        m_fig = re.match(r'!\[(.+)\]\((.+)\)$', line)
+        if m_fig:
+            cap, src = m_fig.groups()
+            m_num = re.match(r'(Fig\.\s*\d+\.)\s*(.*)', cap)
+            cap_html = (f'<b>{m_num.group(1)}</b> {parse_inline(m_num.group(2))}' if m_num
+                        else parse_inline(cap))
+            body_blocks.append(
+                f'<div class="figure-container"><img src="{src}" alt="">'
+                f'<div class="figure-caption">{cap_html}</div></div>'
+            )
+            i += 1
+            continue
+
         # Table
         if line.startswith("|") and line.endswith("|"):
             table_lines = []
@@ -168,7 +185,8 @@ def parse_markdown_to_html(md_text):
                     ("III", "Measured Data-Path Latency (clocks, req to d_ready)"),
                     ("IV", "Measured Harvard vs. Von Neumann Comparison (16 instructions)"),
                     ("V", "Cycle-by-Cycle Fetch and Data Activity at L2_LATENCY = 0"),
-                    ("VI", "Individual Contributions and Subsystem Ownership Breakdown"),
+                    ("VI", "Synthesis Results: Resource Utilization and Maximum Frequency"),
+                    ("VII", "Individual Contributions and Subsystem Ownership Breakdown"),
                 ]
                 if table_counter > len(table_captions):
                     sys.exit(f"Error: table {table_counter} has no caption in table_captions")
@@ -366,6 +384,24 @@ def parse_markdown_to_html(md_text):
     border-radius: 2px;
   }}
   
+  /* Figures */
+  .figure-container {{
+    column-span: all;
+    margin: 8pt auto 10pt auto;
+    text-align: center;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }}
+  .figure-container img {{
+    width: 100%;
+  }}
+  .figure-caption {{
+    font-size: 8pt;
+    text-align: left;
+    margin-top: 3pt;
+    line-height: 1.25;
+  }}
+
   /* Tables */
   .table-container {{
     column-span: all;

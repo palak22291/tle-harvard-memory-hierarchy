@@ -1,0 +1,22 @@
+
+9. Printing statistics.
+
+=== von_neumann_top ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1025 wires
+     1647 wire bits
+     1025 public wires
+     1647 public wire bits
+       18 ports
+      328 port bits
+      889 cells
+        3   $scopeinfo
+      200   CCU2C
+        4   DP16KD
+        3   L6MUX21
+      182   LUT4
+        7   PFUMX
+      490   TRELLIS_FF
+

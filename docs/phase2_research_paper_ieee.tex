@@ -3,6 +3,7 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{graphicx}
 \usepackage{hyperref}
 
 \begin{document}
@@ -18,7 +19,7 @@
 \maketitle
 
 \begin{abstract}
-Memory subsystem contention remains a primary throughput bottleneck in pipelined and single-cycle reduced instruction set processors. In classical Von Neumann architectures, instructions and data share a unified address space and a single physical bus, inducing structural hazards whenever an instruction fetch (\texttt{IF}) coincides with a data memory load or store (\texttt{MEM}) transaction. This paper presents the Register-Transfer Level (RTL) design, cycle-accurate verification, and quantitative performance evaluation of a 32-bit Modified Harvard memory hierarchy implemented in Verilog-2012. The proposed architecture physically decouples the read-only Instruction Memory (\texttt{IMEM}) pathway from a two-tier Data Memory hierarchy comprising a 1~KB byte-addressable Local Data SRAM (\texttt{DMEM}) and a 2~KB Shared Lower-Level Memory (\texttt{L2}). A combinational bitmask Address Decoder and a three-state (\texttt{IDLE}/\texttt{ACTIVE}/\texttt{WAIT}) Read/Write Controller (\texttt{rw\_control}) route data transactions and trap unmapped addresses via \texttt{invalid\_addr\_err}. A parameterized wait-state model makes the L2 tier measurably slower than \texttt{DMEM}, and a single-port Von Neumann baseline (\texttt{unified\_memory}, \texttt{bus\_arbiter}) is built for comparison. Seven Icarus Verilog testbenches (2,213 self-checking assertions plus 12 fetch state vectors) pass with zero errors. The same CPU driver runs a 16-instruction memory-intensive benchmark on both organizations. Both produce identical final memory and accumulator contents. The Harvard hierarchy completes the benchmark in 74 clock cycles against 90 for the Von Neumann baseline (CPI 4.625 vs.\ 5.625, a 1.216$\times$ speedup), because it removes all 36 structural-hazard stall cycles. The speedup falls to 1.178$\times$ when four L2 wait states are added, since both organizations pay the slower L2 equally.
+Memory subsystem contention remains a primary throughput bottleneck in pipelined and single-cycle reduced instruction set processors. In classical Von Neumann architectures, instructions and data share a unified address space and a single physical bus, inducing structural hazards whenever an instruction fetch (\texttt{IF}) coincides with a data memory load or store (\texttt{MEM}) transaction. This paper presents the Register-Transfer Level (RTL) design, cycle-accurate verification, and quantitative performance evaluation of a 32-bit Modified Harvard memory hierarchy implemented in Verilog-2012. The proposed architecture physically decouples the read-only Instruction Memory (\texttt{IMEM}) pathway from a two-tier Data Memory hierarchy comprising a 1~KB byte-addressable Local Data SRAM (\texttt{DMEM}) and a 2~KB Shared Lower-Level Memory (\texttt{L2}). A combinational bitmask Address Decoder and a three-state (\texttt{IDLE}/\texttt{ACTIVE}/\texttt{WAIT}) Read/Write Controller (\texttt{rw\_control}) route data transactions and trap unmapped addresses via \texttt{invalid\_addr\_err}. A parameterized wait-state model makes the L2 tier measurably slower than \texttt{DMEM}, and a single-port Von Neumann baseline (\texttt{unified\_memory}, \texttt{bus\_arbiter}) is built for comparison. Seven Icarus Verilog testbenches (2,213 self-checking assertions plus 12 fetch state vectors) pass with zero errors. The same CPU driver runs a 16-instruction memory-intensive benchmark on both organizations. Both produce identical final memory and accumulator contents. The Harvard hierarchy completes the benchmark in 74 clock cycles against 90 for the Von Neumann baseline (CPI 4.625 vs.\ 5.625, a 1.216$\times$ speedup), because it removes all 36 structural-hazard stall cycles. The speedup falls to 1.178$\times$ when four L2 wait states are added, since both organizations pay the slower L2 equally. Synthesized with Yosys and placed and routed with nextpnr on a Lattice ECP5 LFE5U-25F FPGA, the Harvard system uses 639 logic cells, 538 flip-flops and 2 block RAMs and reaches 134.0~MHz, against 640 logic cells, 490 flip-flops, 4 block RAMs and 105.7~MHz for the baseline.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -48,6 +49,14 @@ The proposed 32-bit Harvard hierarchy (\texttt{harvard\_top.v}) separates memory
     \item \textbf{Address Decoder (\texttt{address\_decoder.v}) and R/W Control (\texttt{rw\_control.v}):} Evaluates 32-bit data addresses combinationally using aligned bitmasks (\texttt{DMEM\_MASK = 0xFFFF\_FC00} for \texttt{0x0000\_0000--0x0000\_03FF} and \texttt{L2\_MASK = 0xFFFF\_F800} for the 2~KB-aligned \texttt{0x0000\_0800--0x0000\_0FFF} region), asserting \texttt{invalid\_addr\_err} on unmapped accesses. Instruction fetches (\texttt{IF}) and data accesses (\texttt{MEM}) proceed in the same clock cycles across independent pathways. Each memory has a one-clock synchronous read; a complete data transaction through \texttt{rw\_control} takes three clocks.
     \item \textbf{Data Memory Hierarchy (\texttt{data\_memory.v} and \texttt{shared\_l2\_memory.v}):} \texttt{DMEM} provides $256 \times 32$-bit storage with 4-bit byte-lane write enables (\texttt{d\_be[3:0]}), while \texttt{Shared L2} provides $512 \times 32$-bit secondary storage.
 \end{enumerate}
+Fig.~\ref{fig:block} shows the system as built for the Phase~II comparison: the same CPU driver drives either the Harvard hierarchy, with its own instruction bus and data bus, or the single-port Von Neumann baseline.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_block_diagram.png}
+\caption{System block diagram. (a) Harvard hierarchy in \texttt{harvard\_cpu\_top.v}: the instruction bus goes straight to \texttt{instruction\_memory.v}, the data bus goes through \texttt{address\_decoder.v} and \texttt{rw\_control.v} to \texttt{DMEM} or L2. (b) Von Neumann baseline in \texttt{von\_neumann\_top.v}: fetch and data requests share one port through \texttt{bus\_arbiter.v}.}
+\label{fig:block}
+\end{figure*}
 
 \begin{table}[htbp]
 \caption{32-Bit Harvard Address Map and Decoding Configuration}
@@ -111,16 +120,53 @@ L2 lat & Arch & Cycles & CPI & Stalls & Speedup \\
 
 The cycle-level waveform (\texttt{sim/arch\_comparison.vcd}, extracted with \texttt{scripts/vcd\_timeline.py}) shows the Harvard fetch pending in the same clocks as a data access, while the Von Neumann fetch is stalled by the arbiter in those clocks. Execute starved for 10 cycles on Harvard against 50 on Von Neumann. Each Harvard data access costs 5 driver cycles through \texttt{rw\_control} against 3 on the baseline, so the gain comes entirely from overlap and is conservative. Each L2 wait state adds 4 cycles to both systems, so the gap stays at 16 cycles and the relative speedup falls. The pre-RTL analytical estimate in \texttt{scripts/analyze\_cpi.py} (2.80$\times$) assumed one-clock Harvard instructions and was not confirmed by the RTL. The Phase~I \texttt{harvard\_top.v} freezes its PC with \texttt{stall = req \& \textasciitilde d\_ready}, so the overlap appears only with the Phase~II driver.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_arch_comparison_waveform.png}
+\caption{Harvard (H) vs.\ Von Neumann (VN) waveform, first 16 clocks at \texttt{L2\_LATENCY = 0}. Shaded clocks are Von Neumann structural stalls (\texttt{if\_stall}); on the Harvard side \texttt{if\_req} and \texttt{d\_req} are high in the same clocks (from \texttt{sim/arch\_comparison.vcd} via \texttt{scripts/plot\_waveforms.py}).}
+\label{fig:wave}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/fig_harvard_top_dmem_access.png}
+\caption{Phase~I \texttt{harvard\_top.v}: \texttt{imem\_en} and \texttt{i\_ready} stay high while \texttt{rw\_control} steps through IDLE(0)/ACTIVE(1)/WAIT(3) for a \texttt{DMEM} write and read-back of \texttt{0xDEADBEEF} (Phase~I figure from \texttt{sim/harvard\_top.vcd}).}
+\label{fig:ptop}
+\end{figure*}
+
+\subsection{Synthesis Results}
+Both systems were synthesized with the comparison parameters (\texttt{L2\_LATENCY = 0}, \texttt{benchmark\_suite.hex}) using \texttt{make synth}: Yosys \texttt{synth\_ecp5} and nextpnr-ecp5 place and route (out of context, 100~MHz target, seed~1) on a Lattice ECP5 LFE5U-25F, plus a Yosys \texttt{synth\_xilinx} Artix-7 resource estimate without place and route. \texttt{scripts/synth\_summary.py} confirms that no netlist output is tied to a constant. The Harvard critical path runs from the L2 block RAM into the \texttt{rw\_control} read-data register (7.46~ns); the Von Neumann path runs from the unified-memory block RAM through two LUT levels into the accumulator (9.46~ns). The 256-word instruction ROM holds only 15 non-zero words and is built from logic cells; the 8~KB \texttt{unified\_memory.v} takes 4 block RAMs. At these frequencies the benchmark takes 552~ns on Harvard and 851~ns on Von Neumann (1.54$\times$). With placement seeds 2--5 the Fmax stays at 133.4--134.4~MHz (Harvard) and 106.7--108.6~MHz (Von Neumann).
+
+\begin{table}[htbp]
+\caption{Synthesis Results: Resource Utilization and Maximum Frequency}\label{tab:syn}
+\begin{center}
+\footnotesize
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & \textbf{Harvard} & \textbf{Von Neumann} \\
+\midrule
+ECP5 logic cells (of 24,288) & 639 & 640 \\
+ECP5 flip-flops & 538 & 490 \\
+ECP5 block RAM (DP16KD, of 56) & 2 & 4 \\
+ECP5 Fmax (post-route) & \textbf{134.0~MHz} & 105.7~MHz \\
+Artix-7 LUTs (estimate) & 155 & 153 \\
+Artix-7 flip-flops (estimate) & 538 & 490 \\
+Artix-7 block RAM (RAMB36 eq.) & 1 & 2 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
 \section{Individual Contributions}
 \begin{itemize}
     \item \textbf{Palak Gupta (Member 1):} \texttt{defines.vh}, \texttt{program\_counter.v}, \texttt{instruction\_memory.v}, \texttt{tb\_phase1\_harvard.v}, \texttt{benchmark\_suite.hex}, \texttt{analyze\_cpi.py}; Sections III and VI, paper formatting.
-    \item \textbf{Atanu Adhikari (Member 2):} \texttt{data\_memory.v}, \texttt{tb\_dmem.v} (1,712 checks); Phase II \texttt{L2\_LATENCY} model and \texttt{tb\_l2\_latency.v} (74 checks); Abstract, Section I and Section IV Part 1.
+    \item \textbf{Atanu Adhikari (Member 2):} \texttt{data\_memory.v}, \texttt{tb\_dmem.v} (1,712 checks); Phase II \texttt{L2\_LATENCY} model and \texttt{tb\_l2\_latency.v} (74 checks); synthesis flow (\texttt{make synth}, \texttt{synth\_summary.py}) and figure scripts (\texttt{plot\_waveforms.py}, \texttt{draw\_block\_diagram.py}); Abstract, Section I, Section IV Part 1 and Synthesis Results.
     \item \textbf{Sambhav Kumar (Member 3):} \texttt{address\_decoder.v}, \texttt{rw\_control.v}, \texttt{shared\_l2\_memory.v}, \texttt{tb\_addr\_rw.v} (26 checks); Phase II \texttt{unified\_memory.v}, \texttt{bus\_arbiter.v}, \texttt{tb\_von\_neumann.v} (319 checks); Section II and references.
     \item \textbf{Prince Singh (Member 4):} \texttt{harvard\_top.v}, \texttt{tb\_harvard\_top.v} (25 checks); Phase II \texttt{simple\_cpu\_driver.v}, \texttt{harvard\_cpu\_top.v}, \texttt{von\_neumann\_top.v}, \texttt{tb\_architecture\_comparison.v} (57 checks), \texttt{vcd\_timeline.py}; Section IV Part 2, Section V, and the measured-result updates to the Abstract and Conclusion.
 \end{itemize}
 
 \section{Conclusion and Future Work}
-Separating the instruction ROM from a two-tier data hierarchy lets an instruction fetch run in the same clocks as a data access. With the same CPU driver and benchmark, the Harvard hierarchy finished in 74 cycles against 90 for a Von Neumann baseline built from the same memory technology (CPI 4.625 vs.\ 5.625, 1.216$\times$), removing all 36 structural-hazard stalls; the gain held at 1.178$\times$ with four L2 wait states. All 2,213 assertions passed. Future work includes a pipelined driver issuing one fetch per clock, a set-associative L1 cache with write-back, and Artix-7 FPGA synthesis.
+Separating the instruction ROM from a two-tier data hierarchy lets an instruction fetch run in the same clocks as a data access. With the same CPU driver and benchmark, the Harvard hierarchy finished in 74 cycles against 90 for a Von Neumann baseline built from the same memory technology (CPI 4.625 vs.\ 5.625, 1.216$\times$), removing all 36 structural-hazard stalls; the gain held at 1.178$\times$ with four L2 wait states. All 2,213 assertions passed. On a Lattice ECP5 the Harvard system needs about the same logic as the baseline (639 vs.\ 640 logic cells), fewer block RAMs (2 vs.\ 4) and reaches 134.0 vs.\ 105.7~MHz, so it is also faster in run time (552 vs.\ 851~ns). Future work includes a pipelined driver issuing one fetch per clock, a set-associative L1 cache with write-back, and Vivado place and route on an Artix-7 board.
 
 \begin{thebibliography}{00}
 \bibitem{hennessy2017} J. L. Hennessy and D. A. Patterson, \emph{Computer Architecture: A Quantitative Approach}, 6th ed. San Francisco, CA, USA: Morgan Kaufmann, 2017.

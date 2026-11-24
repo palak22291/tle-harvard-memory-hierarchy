@@ -11,3 +11,9 @@ graphify-out/
 docs/Video/
 __pycache__/
 *.pyc
+
+# Synthesis: keep reports (*.rpt), place-and-route logs/reports and the summary;
+# skip the multi-MB netlists and Yosys logs
+synth/*.json
+!synth/*_ecp5_pnr.json
+!synth/*_ecp5_pnr.log
