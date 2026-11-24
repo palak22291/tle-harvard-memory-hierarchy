@@ -161,20 +161,19 @@ def parse_markdown_to_html(md_text):
                     row_cells = [c.strip() for c in row_line.strip('|').split('|')]
                     rows.append(row_cells)
                     
-                caption = ""
-                roman_labels = ["I", "II", "III", "IV", "V"]
-                label_idx = min(table_counter - 1, len(roman_labels) - 1)
-                t_label = roman_labels[label_idx]
-                
-                if table_counter == 1:
-                    caption = "32-Bit Harvard Address Map and Hardware Decoding Specification"
-                elif table_counter == 2:
-                    caption = "RTL Verification Methodology and Automated Assertion Results"
-                elif table_counter == 3:
-                    caption = "Quantitative Architectural Comparison: Harvard vs. Von Neumann Baseline"
-                elif table_counter == 4:
-                    caption = "Individual Contributions and Subsystem Ownership Breakdown"
-                    
+                # One (number, title) per Markdown table, in document order.
+                table_captions = [
+                    ("I", "32-Bit Harvard Address Map and Hardware Decoding Specification"),
+                    ("II", "RTL Verification Methodology and Automated Assertion Results"),
+                    ("III", "Measured Data-Path Latency (clocks, req to d_ready)"),
+                    ("IV", "Measured Harvard vs. Von Neumann Comparison (16 instructions)"),
+                    ("V", "Cycle-by-Cycle Fetch and Data Activity at L2_LATENCY = 0"),
+                    ("VI", "Individual Contributions and Subsystem Ownership Breakdown"),
+                ]
+                if table_counter > len(table_captions):
+                    sys.exit(f"Error: table {table_counter} has no caption in table_captions")
+                t_label, caption = table_captions[table_counter - 1]
+
                 table_html = [
                     '<div class="table-container">',
                     f'<div class="table-caption"><span class="table-num">TABLE {t_label}</span><br><span class="table-name">{caption}</span></div>',
